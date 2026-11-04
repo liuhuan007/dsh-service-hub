@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>本地控制台</title>
+<style>
+/* ======================== 基础 ======================== */
+:root{
+  --bg:#0a0d13;
+  --bg-elev:#111722;
+  --bg-card:#121a26;
+  --bg-card-hi:#17202f;
+  --border:#222c3c;
+  --border-2:#33415a;
+  --text:#e7ecf4;
+  --dim:#98a6bc;
+  --faint:#69778f;
+  --accent:#4c9aff;
+  --accent-soft:rgba(76,154,255,.14);
+  --green:#35d07f;
+  --yellow:#f2c94c;
+  --red:#f2545b;
+  --gray:#5d6a7e;
+  --radius:12px;
+  --shadow:0 10px 26px rgba(0,0,0,.42);
+  --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"Courier New",monospace;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html{color-scheme:dark;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(1100px 520px at 12% -10%, rgba(76,154,255,.10), transparent 60%),
+    radial-gradient(900px 460px at 96% 0%, rgba(53,208,127,.06), transparent 55%),
+    var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,sans-serif;
+  font-size:14px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+[hidden]{display:none !important;}
+button{font-family:inherit;}
+::selection{background:rgba(76,154,255,.35);}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:#26314a;border-radius:6px;border:2px solid transparent;background-clip:content-box;}
+::-webkit-scrollbar-thumb:hover{background:#3a4966;background-clip:content-box;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ======================== 顶部提示 ======================== */
+.banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 22px;font-size:13px;color:#ffc0c3;background:rgba(242,84,91,.13);border-bottom:1px solid rgba(242,84,91,.4);}
+.banner b{font-weight:600;color:#fff;}
+.banner .dim{color:#e39a9e;}
+
+/* ======================== 顶栏 ======================== */
+.topbar{position:sticky;top:0;z-index:20;background:rgba(10,13,19,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border);}
+.topbar-inner{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;max-width:1320px;margin:0 auto;padding:12px 22px;}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;}
+.logo{width:30px;height:30px;flex:none;display:grid;place-items:center;font-size:14px;color:#9cc4ff;background:linear-gradient(145deg,rgba(76,154,255,.30),rgba(76,154,255,.06));border:1px solid rgba(76,154,255,.35);border-radius:9px;}
+.brand h1{margin:0;font-size:17px;font-weight:650;letter-spacing:.5px;white-space:nowrap;}
+.daemon{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;font-size:11.5px;color:var(--dim);background:var(--bg-elev);border:1px solid var(--border);border-radius:999px;white-space:nowrap;font-variant-numeric:tabular-nums;cursor:default;}
+.daemon .dot{width:7px;height:7px;flex:none;border-radius:50%;background:var(--gray);}
+.daemon.live .dot{background:var(--green);animation:breathe 2.4s ease-in-out infinite;}
+.daemon.off{color:#ff9fa4;border-color:rgba(242,84,91,.4);}
+.daemon.off .dot{background:var(--red);}
+.toolbar{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+.search{width:250px;padding:7px 11px;font:inherit;font-size:13px;color:var(--text);background:var(--bg-elev);border:1px solid var(--border);border-radius:8px;outline:none;transition:border-color .12s,box-shadow .12s;}
+.search::placeholder{color:var(--faint);}
+.search:focus{border-color:rgba(76,154,255,.6);box-shadow:0 0 0 3px rgba(76,154,255,.14);}
+.grow{flex:1 1 auto;}
+
+/* ======================== 分组筛选 ======================== */
+.chips{display:flex;flex-wrap:wrap;gap:8px;max-width:1320px;margin:0 auto;padding:15px 22px 4px;}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;font:inherit;font-size:12.5px;color:var(--dim);background:var(--bg-elev);border:1px solid var(--border);border-radius:999px;cursor:pointer;transition:color .12s,border-color .12s,background .12s;}
+.chip:hover{color:var(--text);border-color:var(--border-2);}
+.chip.on{color:#bcd8ff;background:var(--accent-soft);border-color:rgba(76,154,255,.55);}
+.chip .count{font-size:11px;opacity:.75;font-variant-numeric:tabular-nums;}
+
+/* ======================== 快速入口 ======================== */
+.quickbar{display:flex;align-items:center;gap:10px;max-width:1320px;margin:0 auto;padding:12px 22px 0;}
+.quickbar-label{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;letter-spacing:.4px;color:#bcd8ff;white-space:nowrap;cursor:default;}
+.quickbar-label .qdot{width:6px;height:6px;flex:none;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(76,154,255,.14);}
+.quickbar-list{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;overflow-x:auto;overflow-y:hidden;padding:1px 0 3px;scrollbar-width:thin;}
+.quickbar-list::-webkit-scrollbar{height:6px;}
+.quick-link{flex:none;display:inline-flex;align-items:center;gap:6px;max-width:260px;padding:4px 11px;font:inherit;font-size:12.5px;color:var(--dim);text-decoration:none;white-space:nowrap;background:var(--bg-elev);border:1px solid var(--border);border-radius:999px;transition:color .12s,border-color .12s,background .12s;}
+.quick-link:hover{color:#bcd8ff;background:var(--accent-soft);border-color:rgba(76,154,255,.55);}
+.quick-link .qname{min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
+.quick-link .qport{flex:none;font-family:var(--mono);font-size:11px;color:#7fb8ff;font-variant-numeric:tabular-nums;}
+.quick-link:hover .qport{color:#a9d1ff;}
+.quick-link .qgo{flex:none;font-size:10px;color:var(--faint);}
+.quick-link:hover .qgo{color:#9cc4ff;}
+@media (max-width:900px){.quickbar{padding:10px 14px 0;}}
+
+/* ======================== 主体 ======================== */
+.wrap{max-width:1320px;margin:0 auto;padding:14px 22px 44px;}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:stretch;}
+
+/* ======================== 卡片 ======================== */
+.card{position:relative;display:flex;flex-direction:column;gap:9px;padding:13px 15px;background:linear-gradient(180deg,var(--bg-card-hi),var(--bg-card) 42%);border:1px solid var(--border);border-left:2px solid transparent;border-radius:var(--radius);transition:transform .13s ease,border-color .13s ease,box-shadow .13s ease;}
+.card:hover{transform:translateY(-2px);border-color:var(--border-2);box-shadow:var(--shadow);}
+.card[data-status="running"]{border-left-color:rgba(53,208,127,.55);}
+.card[data-status="starting"]{border-left-color:rgba(242,201,76,.6);}
+.card[data-status="error"]{border-left-color:rgba(242,84,91,.6);}
+.card-top{display:flex;align-items:center;gap:8px;min-width:0;}
+.light{width:9px;height:9px;flex:none;border-radius:50%;background:var(--gray);}
+.light[data-status="running"]{background:var(--green);animation:breathe 2.2s ease-in-out infinite;}
+.light[data-status="starting"]{background:var(--yellow);}
+.light[data-status="error"]{background:var(--red);}
+.card-name{margin:0;flex:1 1 auto;min-width:0;font-size:14.5px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pill{flex:none;display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid transparent;letter-spacing:.2px;}
+.pill[data-status="running"]{color:#8ff0bd;background:rgba(53,208,127,.13);border-color:rgba(53,208,127,.35);}
+.pill[data-status="stopped"]{color:#9aa7bd;background:rgba(93,106,126,.18);border-color:rgba(93,106,126,.35);}
+.pill[data-status="starting"]{color:#ffe08a;background:rgba(242,201,76,.13);border-color:rgba(242,201,76,.35);}
+.pill[data-status="error"]{color:#ff9fa4;background:rgba(242,84,91,.14);border-color:rgba(242,84,91,.38);}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;min-height:18px;font-size:11.5px;color:var(--dim);}
+.meta .tag{padding:1px 6px;border-radius:5px;border:1px solid var(--border);background:rgba(255,255,255,.02);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.meta .tag.kind{color:#a8c6f0;border-color:rgba(76,154,255,.28);background:rgba(76,154,255,.07);}
+.meta .tag.group{color:#c5b6f5;border-color:rgba(160,130,255,.28);background:rgba(160,130,255,.07);}
+.meta .num{font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;}
+.meta .ver{font-family:var(--mono);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;padding:1px 6px;border:1px solid var(--border);border-radius:5px;background:rgba(255,255,255,.02);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.verlink{align-self:center;padding:1px 6px;font-family:inherit;font-size:11px;line-height:1.4;color:var(--faint);background:transparent;border:1px dashed var(--border);border-radius:5px;cursor:pointer;white-space:nowrap;transition:color .12s,border-color .12s,background .12s;}
+.verlink:hover:not(:disabled){color:#bcd8ff;border-color:rgba(76,154,255,.55);background:rgba(76,154,255,.06);}
+.verlink:disabled{opacity:.5;cursor:not-allowed;}
+.health{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;font-size:11px;color:var(--dim);border:1px solid var(--border);border-radius:5px;}
+.health .hd{width:5px;height:5px;flex:none;border-radius:50%;background:var(--gray);}
+.health.ok{color:#8ff0bd;border-color:rgba(53,208,127,.3);}
+.health.ok .hd{background:var(--green);}
+.health.down{color:#ff9fa4;border-color:rgba(242,84,91,.3);}
+.health.down .hd{background:var(--red);}
+.urlrow{display:flex;align-items:center;gap:6px;min-height:20px;overflow:hidden;}
+.urlrow a{min-width:0;font-family:var(--mono);font-size:11.5px;color:#7fb8ff;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.urlrow a:hover{color:#a9d1ff;text-decoration:underline;}
+.urlrow .arrow{flex:none;font-size:10px;color:var(--faint);}
+.urlrow .none{font-size:11.5px;color:var(--faint);}
+
+.urlrow a.urlchip{display:inline-flex;align-items:center;gap:6px;flex:0 1 auto;max-width:100%;padding:4px 10px;font-size:12px;color:#9cc4ff;text-decoration:none;background:rgba(76,154,255,.13);border:1px solid rgba(76,154,255,.45);border-radius:7px;transition:color .12s,background .12s,border-color .12s;}
+.urlrow a.urlchip:hover{color:#d6e7ff;text-decoration:none;background:rgba(76,154,255,.24);border-color:rgba(76,154,255,.75);}
+.urlrow .uico{flex:none;font-size:11px;opacity:.85;}
+.urlrow .uhost{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;letter-spacing:.2px;}
+.urlrow .ugo{flex:none;font-size:10px;opacity:.7;}
+.urlrow .btn.urlcopy{flex:none;padding:3px 8px;font-size:11px;color:var(--dim);background:transparent;border-color:var(--border);}
+.urlrow .btn.urlcopy:hover:not(:disabled){color:#bcd8ff;background:rgba(76,154,255,.08);border-color:rgba(76,154,255,.55);}
+.urlrow a.urlchip.lanchip{color:#b7d9a8;background:rgba(110,200,120,.12);border-color:rgba(110,200,120,.42);}
+.urlrow a.urlchip.lanchip:hover{color:#e4f6dc;background:rgba(110,200,120,.22);border-color:rgba(110,200,120,.72);}
+.urlrow .btn.urlcopy.lan{color:#9fc78f;border-color:rgba(110,200,120,.35);}
+.daemon.lanip{cursor:pointer;color:#a9c9ff;border-color:rgba(76,154,255,.38);}
+.daemon.lanip:hover{background:rgba(76,154,255,.12);}
+.quick-link .qlan{flex:none;margin-left:2px;padding:0 5px;font-size:9.5px;font-weight:700;letter-spacing:.4px;color:#b7d9a8;background:rgba(110,200,120,.16);border:1px solid rgba(110,200,120,.45);border-radius:4px;}
+.quick-more{flex:none;cursor:pointer;padding:5px 10px;font-size:11.5px;font-weight:600;color:#9cc4ff;background:rgba(76,154,255,.10);border:1px dashed rgba(76,154,255,.45);border-radius:999px;transition:background .12s,border-color .12s;}
+.quick-more:hover{background:rgba(76,154,255,.22);border-color:rgba(76,154,255,.8);color:#d6e7ff;}
+.note{font-size:11.5px;line-height:1.4;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:auto;padding-top:4px;}
+.foot .cluster{display:flex;flex-wrap:wrap;gap:6px;}
+.foot .cluster.end{margin-left:auto;}
+
+/* ======================== 按钮 ======================== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 10px;font-family:inherit;font-size:12px;line-height:1;color:var(--text);background:var(--bg-elev);border:1px solid var(--border-2);border-radius:7px;cursor:pointer;white-space:nowrap;transition:background .12s,border-color .12s,color .12s,transform .06s;}
+.btn:hover:not(:disabled){background:#1b2536;border-color:#42526e;}
+.btn:active:not(:disabled){transform:translateY(1px);}
+.btn:disabled{opacity:.42;cursor:not-allowed;}
+.btn.busy{opacity:.9;}
+.btn.primary{color:#041322;background:var(--accent);border-color:#66abff;font-weight:600;}
+.btn.primary:hover:not(:disabled){background:#69adff;border-color:#8cc2ff;}
+.btn.go{color:#8ff0bd;background:rgba(53,208,127,.12);border-color:rgba(53,208,127,.4);font-weight:600;}
+.btn.go:hover:not(:disabled){background:rgba(53,208,127,.22);}
+.btn.stop{color:#ffe08a;background:rgba(242,201,76,.1);border-color:rgba(242,201,76,.35);}
+.btn.stop:hover:not(:disabled){background:rgba(242,201,76,.2);}
+.btn.ghost{color:var(--dim);background:transparent;border-color:var(--border);}
+.btn.ghost:hover:not(:disabled){color:var(--text);background:rgba(255,255,255,.04);}
+.btn.danger{color:#ff9fa4;background:transparent;border-color:rgba(242,84,91,.35);}
+.btn.danger:hover:not(:disabled){background:rgba(242,84,91,.14);border-color:rgba(242,84,91,.6);}
+.btn.upgrade{color:#bcd8ff;background:rgba(76,154,255,.13);border-color:rgba(76,154,255,.45);font-weight:600;}
+.btn.upgrade:hover:not(:disabled){background:rgba(76,154,255,.24);border-color:rgba(76,154,255,.7);}
+.btn.sm{padding:4px 8px;font-size:11.5px;}
+.btn .spin{width:10px;height:10px;flex:none;border-radius:50%;border:1.5px solid rgba(231,236,244,.28);border-top-color:currentColor;animation:spin .7s linear infinite;}
+.icon-btn{width:28px;height:28px;display:grid;place-items:center;font-family:inherit;font-size:13px;color:var(--dim);background:transparent;border:1px solid var(--border);border-radius:7px;cursor:pointer;}
+.icon-btn:hover{color:var(--text);border-color:var(--border-2);}
+
+/* ======================== 空状态 ======================== */
+.empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:52px 18px;text-align:center;font-size:13.5px;color:var(--dim);background:rgba(255,255,255,.015);border:1px dashed var(--border);border-radius:var(--radius);}
+.empty .em{font-size:26px;line-height:1;opacity:.8;}
+.empty .hint{font-size:12px;color:var(--faint);}
+.dialog-body .empty{padding:34px 16px;background:transparent;border:0;}
+
+/* ======================== 浮层骨架 ======================== */
+.backdrop{position:fixed;inset:0;z-index:40;background:rgba(3,6,12,.66);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);}
+.slider{position:fixed;top:0;right:0;bottom:0;z-index:50;display:flex;flex-direction:column;width:min(720px,94vw);background:var(--bg-elev);border-left:1px solid var(--border-2);box-shadow:-18px 0 44px rgba(0,0,0,.5);animation:slide-in .18s ease;}
+.dialog{position:fixed;left:50%;top:50%;z-index:50;display:flex;flex-direction:column;width:min(760px,94vw);max-height:86vh;background:var(--bg-elev);border:1px solid var(--border-2);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.55);transform:translate(-50%,-50%);animation:pop-in .16s ease;}
+.dialog-head,.slider-head{display:flex;align-items:center;gap:10px;flex:none;padding:14px 18px;border-bottom:1px solid var(--border);}
+.dialog-head h2,.slider-head h2{margin:0;font-size:15px;font-weight:650;letter-spacing:.3px;}
+.dialog-sub,.slider-sub{margin-top:2px;font-size:11.5px;color:var(--faint);}
+.dialog-body{flex:1 1 auto;min-height:0;overflow:auto;padding:14px 18px;}
+.dialog-foot{display:flex;justify-content:flex-end;gap:8px;flex:none;padding:12px 18px;border-top:1px solid var(--border);}
+
+/* ======================== 日志面板 ======================== */
+.slider-head{justify-content:space-between;}
+.logbody{flex:1 1 auto;min-height:0;margin:0;overflow:auto;padding:14px 16px;background:#080b11;font-family:var(--mono);font-size:12.5px;line-height:1.55;color:#c6d2e6;white-space:pre-wrap;word-break:break-word;tab-size:4;}
+.logbody.log-empty{display:flex;align-items:center;justify-content:center;font-family:inherit;font-size:13px;color:var(--faint);}
+.slider-foot{display:flex;justify-content:space-between;gap:10px;flex:none;padding:9px 16px;font-size:11.5px;color:var(--faint);border-top:1px solid var(--border);}
+
+/* ======================== 脚本：上次结果 / 运行历史 ======================== */
+.lastrun{display:flex;align-items:center;min-height:20px;font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lastrun.ok{color:#8ff0bd;}
+.lastrun.fail{color:#ff9fa4;}
+.lastrun.muted{color:var(--faint);}
+.pill[data-status="done"]{color:#8ff0bd;background:rgba(53,208,127,.10);border-color:rgba(53,208,127,.3);}
+.light[data-status="done"]{background:var(--green);opacity:.6;}
+.card[data-status="done"]{border-left-color:rgba(53,208,127,.3);}
+.runlist{flex:1 1 auto;min-height:0;overflow:auto;padding:10px 16px 16px;display:flex;flex-direction:column;gap:6px;}
+.runlist .empty{padding:40px 16px;background:transparent;border:0;}
+.runrow{display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:9px;}
+.runrow:hover{border-color:var(--border-2);}
+.run-time{flex:none;font-family:var(--mono);font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;}
+.run-badge{flex:none;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;border:1px solid transparent;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.run-badge.ok{color:#8ff0bd;background:rgba(53,208,127,.13);border-color:rgba(53,208,127,.35);}
+.run-badge.fail{color:#ff9fa4;background:rgba(242,84,91,.14);border-color:rgba(242,84,91,.38);}
+.run-badge.up{color:#bcd8ff;background:var(--accent-soft);border-color:rgba(76,154,255,.45);}
+.run-dur{flex:none;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums;}
+
+/* ======================== 候选列表 ======================== */
+.cand{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.05);}
+.cand:last-child{border-bottom:0;}
+.cand-main{flex:1 1 auto;min-width:0;}
+.cand-name{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cand-cmd{margin-top:2px;font-family:var(--mono);font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cand-side{display:flex;align-items:center;gap:8px;flex:none;}
+.cand-meta{font-family:var(--mono);font-size:11px;color:var(--dim);}
+.cand-src{padding:1px 6px;font-size:10.5px;color:var(--dim);border:1px solid var(--border);border-radius:5px;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis;}
+
+/* ======================== 表单 ======================== */
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.field.wide{grid-column:1/-1;}
+.field label{font-size:12px;color:var(--dim);}
+.field label .req{color:#ff9fa4;}
+.input,.select,.textarea{width:100%;padding:7px 10px;font-family:inherit;font-size:13px;color:var(--text);background:#0d131d;border:1px solid var(--border-2);border-radius:7px;outline:none;transition:border-color .12s,box-shadow .12s;}
+.input::placeholder{color:var(--faint);}
+.input:focus,.select:focus,.textarea:focus{border-color:rgba(76,154,255,.65);box-shadow:0 0 0 3px rgba(76,154,255,.13);}
+.select{appearance:none;padding-right:30px;background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;cursor:pointer;}
+.textarea{min-height:60px;resize:vertical;line-height:1.5;}
+.form-err{grid-column:1/-1;font-size:12px;color:#ff9fa4;min-height:0;}
+
+/* ======================== 轻提示 ======================== */
+.toasts{position:fixed;left:50%;bottom:26px;z-index:80;display:flex;flex-direction:column;align-items:center;gap:8px;transform:translateX(-50%);pointer-events:none;}
+.toast{max-width:min(560px,90vw);padding:9px 14px;font-size:13px;color:var(--text);background:#182130;border:1px solid var(--border-2);border-radius:9px;box-shadow:0 12px 30px rgba(0,0,0,.5);opacity:0;transform:translateY(8px);transition:opacity .2s ease,transform .2s ease;pointer-events:auto;}
+.toast.show{opacity:1;transform:none;}
+.toast.ok{border-color:rgba(53,208,127,.5);}
+.toast.err{border-color:rgba(242,84,91,.55);}
+.toast.info{border-color:var(--border-2);}
+
+/* ======================== 动画 ======================== */
+@keyframes breathe{0%,100%{box-shadow:0 0 0 0 rgba(53,208,127,.55);}50%{box-shadow:0 0 0 5px rgba(53,208,127,0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes slide-in{from{opacity:.4;transform:translateX(28px);}to{opacity:1;transform:none;}}
+@keyframes pop-in{from{opacity:0;transform:translate(-50%,-49%) scale(.985);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
+
+/* ======================== 响应式 ======================== */
+@media (max-width:1100px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (max-width:900px){
+  .topbar-inner{padding:10px 14px;}
+  .chips{padding:12px 14px 2px;}
+  .wrap{padding:12px 14px 34px;}
+  .search{width:200px;}
+  .slider{width:100%;}
+}
+@media (max-width:700px){
+  .grid{grid-template-columns:1fr;}
+  .form{grid-template-columns:1fr;}
+  .toolbar{width:100%;margin-left:0;}
+  .search{flex:1 1 100%;width:auto;}
+  .dialog{max-height:92vh;}
+  .brand h1{font-size:16px;}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;}
+}
+</style>
+</head>
+
+<body>
+
+<noscript><div class="banner">⚠ <b>需要启用 JavaScript</b><span class="dim">本地控制台依赖浏览器脚本，请在浏览器设置中启用后刷新页面。</span></div></noscript>
+
+<div id="banner" class="banner" hidden>⚠ <b>守护进程未连接</b><span class="dim" id="bannerDetail">正在自动重试…</span></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">▣</span>
+      <h1>本地控制台</h1>
+      <span id="daemon" class="daemon" title="守护进程连接状态"><span class="dot" aria-hidden="true"></span><span id="daemonText">连接中…</span></span>
+      <span id="lanip" class="daemon lanip" hidden title="本机局域网地址（点击复制）"><span id="lanipText"></span></span>
+    </div>
+    <div class="toolbar">
+      <input id="search" class="search" type="search" placeholder="搜索 名称 / 分组 / 命令" autocomplete="off" spellcheck="false" aria-label="搜索服务">
+      <button id="btnStartAll" class="btn primary" type="button">▶ 全部启动</button>
+      <button id="btnStopAll" class="btn stop" type="button">■ 全部停止</button>
+      <button id="btnDiscover" class="btn" type="button">⟳ 重新扫描</button>
+      <button id="btnAdd" class="btn" type="button">＋ 添加</button>
+      <button id="btnShutdown" class="btn danger" type="button">⏏ 退出控制台</button>
+    </div>
+  </div>
+</header>
+
+<nav id="quickbar" class="quickbar" hidden aria-label="快速入口">
+  <span class="quickbar-label"><span class="qdot" aria-hidden="true"></span>快速入口</span>
+  <div id="quickChips" class="quickbar-list"></div>
+</nav>
+
+<nav id="chips" class="chips" aria-label="分组筛选"></nav>
+
+<main class="wrap">
+  <section id="grid" class="grid" aria-live="polite"></section>
+</main>
+
+<div id="backdrop" class="backdrop" hidden></div>
+
+<aside id="panelLogs" class="slider" hidden aria-label="日志面板">
+  <div class="slider-head">
+    <div>
+      <h2 id="logTitle">日志</h2>
+      <div class="slider-sub" id="logSub">—</div>
+    </div>
+    <span class="grow"></span>
+    <button id="btnLogRefresh" class="btn sm" type="button">刷新</button>
+    <button id="btnLogClose" class="btn sm ghost" type="button">关闭</button>
+  </div>
+  <pre id="logBody" class="logbody"></pre>
+  <div class="slider-foot"><span id="logMeta">—</span><span>读取最近 300 行 · 自动滚动到底部</span></div>
+</aside>
+
+<aside id="panelRuns" class="slider" hidden aria-label="运行历史面板">
+  <div class="slider-head">
+    <div>
+      <h2 id="runsTitle">运行历史</h2>
+      <div class="slider-sub" id="runsSub">—</div>
+    </div>
+    <span class="grow"></span>
+    <button id="btnRunsBack" class="btn sm ghost" type="button" hidden>← 返回列表</button>
+    <button id="btnRunsRefresh" class="btn sm" type="button">刷新</button>
+    <button id="btnRunsClose" class="btn sm ghost" type="button">关闭</button>
+  </div>
+  <div id="runList" class="runlist"></div>
+  <pre id="runLog" class="logbody" hidden></pre>
+  <div class="slider-foot"><span id="runsMeta">—</span><span>只保留最近 30 次运行 · 输出自动滚动到底部</span></div>
+</aside>
+
+<div id="panelDiscover" class="dialog" hidden role="dialog" aria-modal="true" aria-labelledby="discTitle">
+  <div class="dialog-head">
+    <div>
+      <h2 id="discTitle">扫描结果</h2>
+      <div class="dialog-sub" id="discSub">检测本机正在运行的服务</div>
+    </div>
+    <span class="grow"></span>
+    <button id="btnDiscClose" class="icon-btn" type="button" aria-label="关闭">✕</button>
+  </div>
+  <div id="discBody" class="dialog-body"></div>
+  <div class="dialog-foot">
+    <button id="btnReScan" class="btn" type="button">⟳ 重新扫描</button>
+    <button id="btnDiscClose2" class="btn ghost" type="button">关闭</button>
+  </div>
+</div>
+
+<div id="panelAdd" class="dialog" hidden role="dialog" aria-modal="true" aria-labelledby="addTitle">
+  <div class="dialog-head">
+    <div>
+      <h2 id="addTitle">添加服务</h2>
+      <div class="dialog-sub">登记后将写入本地注册表</div>
+    </div>
+    <span class="grow"></span>
+    <button id="btnAddClose" class="icon-btn" type="button" aria-label="关闭">✕</button>
+  </div>
+  <form id="addForm" class="dialog-body" novalidate>
+    <div class="form">
+      <div class="field">
+        <label for="fName">名称 <span class="req">*</span></label>
+        <input id="fName" class="input" type="text" placeholder="例如 my-api" maxlength="80" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="fGroup">分组</label>
+        <input id="fGroup" class="input" type="text" list="groupList" placeholder="例如 开发" maxlength="40" autocomplete="off">
+        <datalist id="groupList"></datalist>
+      </div>
+      <div class="field">
+        <label for="fKind">类型</label>
+        <select id="fKind" class="select">
+          <option value="service">⚙️ service · 常驻后台</option>
+          <option value="app">🪟 app · GUI 应用</option>
+          <option value="script">⚡ script · 一次性任务</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fCwd">工作目录</label>
+        <input id="fCwd" class="input" type="text" placeholder="留空则沿用守护进程目录" autocomplete="off">
+      </div>
+      <div class="field wide">
+        <label for="fExe">可执行文件 <span class="req">*</span></label>
+        <input id="fExe" class="input" type="text" placeholder="例如 C:\tools\api.exe 或 node" autocomplete="off">
+      </div>
+      <div class="field wide">
+        <label for="fArgs">参数（空格分隔）</label>
+        <input id="fArgs" class="input" type="text" placeholder="例如 --port 3000 --watch" autocomplete="off">
+      </div>
+      <div class="field wide">
+        <label for="fNote">备注</label>
+        <input id="fNote" class="input" type="text" placeholder="可选，会显示在卡片上" maxlength="160" autocomplete="off">
+      </div>
+      <div id="addErr" class="form-err" role="alert"></div>
+    </div>
+  </form>
+  <div class="dialog-foot">
+    <button id="btnAddCancel" class="btn ghost" type="button">取消</button>
+    <button id="btnAddSubmit" class="btn primary" type="button">保存并添加</button>
+  </div>
+</div>
+
+<div id="toasts" class="toasts" aria-live="assertive" aria-atomic="false"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  const REFRESH_MS = 3000;
+  const LOG_LINES = 300;
+  const GROUP_ALL = '*';
+
+  const STATUS = {
+    running: { label: '运行中', cls: 'running' },
+    stopped: { label: '已停止', cls: 'stopped' },
+    starting: { label: '启动中', cls: 'starting' },
+    error: { label: '异常', cls: 'error' }
+  };
+  const KIND = {
+    service: { icon: '⚙️', label: '常驻服务', short: '服务' },
+    app: { icon: '🪟', label: 'GUI 应用', short: '应用' },
+    script: { icon: '⚡', label: '一次性任务', short: '脚本' },
+    terminal: { icon: '🖥️', label: '终端工具', short: '终端' }
+  };
+  const HEALTH = { ok: '健康', down: '异常', unknown: '未知' };
+
+  const state = {
+    items: [],
+    daemon: null,
+    error: false,
+    loaded: false,
+    lastSync: null,
+    group: GROUP_ALL,
+    query: '',
+    pending: new Map(),
+    verPending: new Set(),
+    busyAll: false,
+    modal: null,
+    logItem: null,
+    runsItem: null,
+    runs: null,
+    runsLoading: false,
+    runsError: '',
+    runView: 'list',
+    runActive: null,
+    disc: null,
+    discLoading: false,
+    discError: '',
+    added: new Set()
+  };
+
+  let refreshing = false;
+  let chipsSig = null;
+  let gridSig = null;
+  let quickSig = null;
+
+  /* ------------------------- 通用工具 ------------------------- */
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = String(text);
+    return node;
+  }
+
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return '';
+    const date = new Date(iso);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleString('zh-CN', { hour12: false });
+  }
+
+  function fmtDuration(iso) {
+    if (!iso) return '';
+    const start = new Date(iso).getTime();
+    if (isNaN(start)) return '';
+    const seconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
+    if (seconds < 60) return seconds + ' 秒';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return minutes + ' 分钟';
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return hours + ' 小时';
+    return Math.floor(hours / 24) + ' 天';
+  }
+
+  function pad2(value) {
+    return (value < 10 ? '0' : '') + value;
+  }
+
+  function fmtClock(iso, withSeconds) {
+    if (!iso) return '—';
+    const date = new Date(iso);
+    if (isNaN(date.getTime())) return '—';
+    const text = pad2(date.getHours()) + ':' + pad2(date.getMinutes());
+    return withSeconds === false ? text : text + ':' + pad2(date.getSeconds());
+  }
+
+  function fmtDurationMs(ms) {
+    const value = Number(ms);
+    if (!isFinite(value) || value < 0) return '—';
+    if (value < 1000) return Math.round(value) + 'ms';
+    const seconds = value / 1000;
+    if (seconds < 60) return seconds.toFixed(1) + 's';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return minutes + 'm ' + Math.round(seconds % 60) + 's';
+    return Math.floor(minutes / 60) + 'h ' + (minutes % 60) + 'm';
+  }
+
+  function runDuration(run) {
+    if (!run) return '—';
+    if (typeof run.durationMs === 'number' && isFinite(run.durationMs) && run.durationMs >= 0) {
+      return fmtDurationMs(run.durationMs);
+    }
+    const start = Date.parse(run.startedAt || '');
+    const end = Date.parse(run.endedAt || '');
+    if (isFinite(start) && isFinite(end)) return fmtDurationMs(Math.max(0, end - start));
+    return '—';
+  }
+
+  function runTimeLabel(run) {
+    if (!run) return '—';
+    return fmtClock(run.endedAt || run.startedAt, false);
+  }
+
+  function versionLabel(version) {
+    const text = String(version === null || version === undefined ? '' : version).trim();
+    if (!text) return '';
+    return /^v/i.test(text) ? text : 'v' + text;
+  }
+
+  function buildLastRun(run) {
+    if (!run) {
+      const idle = el('div', 'lastrun muted', '尚未运行');
+      idle.title = '这个一次性任务还没有运行记录';
+      return idle;
+    }
+    const ok = run.ok === true;
+    const code = run.exitCode === null || run.exitCode === undefined ? '—' : run.exitCode;
+    const label = run.kind === 'upgrade' ? '上次升级' : '上次';
+    const line = el('div', 'lastrun ' + (ok ? 'ok' : 'fail'));
+    line.textContent = ok
+      ? label + '：成功 · 耗时 ' + runDuration(run) + ' · ' + runTimeLabel(run)
+      : label + '：失败(exit ' + code + ') · 耗时 ' + runDuration(run) + ' · ' + runTimeLabel(run);
+    line.title = label + '：' + fmtTime(run.startedAt) + (run.endedAt ? ' → ' + fmtTime(run.endedAt) : '');
+    return line;
+  }
+
+  function safeUrl(value) {
+    if (typeof value !== 'string') return null;
+    const url = value.trim();
+    return /^https?:\/\//i.test(url) ? url : null;
+  }
+
+  function urlHost(value) {
+    try {
+      const parsed = new URL(value);
+      return parsed.port ? parsed.hostname + ':' + parsed.port : parsed.hostname;
+    } catch (err) {
+      return String(value || '').replace(/^https?:\/\//i, '');
+    }
+  }
+
+  function fallbackCopy(text) {
+    let copied = false;
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+    area.style.top = '0';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    try {
+      area.select();
+      area.setSelectionRange(0, area.value.length);
+      copied = document.execCommand('copy');
+    } catch (err) {
+      copied = false;
+    }
+    document.body.removeChild(area);
+    return copied === true;
+  }
+
+  function copyAddress(value) {
+    const url = safeUrl(value);
+    if (!url) {
+      toast('没有可复制的访问地址', 'info');
+      return;
+    }
+    const done = function () {
+      toast('已复制地址', 'ok');
+    };
+    const failed = function () {
+      if (fallbackCopy(url)) toast('已复制地址', 'ok');
+      else toast('复制失败，请手动选择地址', 'err');
+    };
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(url).then(done, failed);
+      } else {
+        failed();
+      }
+    } catch (err) {
+      failed();
+    }
+  }
+
+  const QUICK_LIMIT = 6;
+  let quickExpanded = false;
+
+  function quickLinks() {
+    const links = [];
+    state.items.forEach(function (item) {
+      // 只收"运行中"的条目：已停止的服务点开是白页，不该占位置
+      if (item.status !== 'running' && item.status !== 'starting') return;
+      const url = safeUrl(item.url);
+      if (!url) return;
+      const lan = safeUrl(item.urlLan);
+      // 每项只出一个 chip；LAN 备选地址放进 tooltip，不再单独占位
+      links.push({ id: item.id, name: item.name, url: url, host: urlHost(url), lan: lan && lan !== url ? lan : null });
+    });
+    return links;
+  }
+
+  function renderQuickbar() {
+    const links = quickLinks();
+    const bar = $('quickbar');
+    const box = $('quickChips');
+    const sig = JSON.stringify([links, quickExpanded]);
+    if (sig === quickSig) return;
+    quickSig = sig;
+    clear(box);
+    bar.hidden = links.length === 0;
+    if (links.length === 0) return;
+    const shown = quickExpanded ? links : links.slice(0, QUICK_LIMIT);
+    shown.forEach(function (link) {
+      box.appendChild(buildQuickLink(link));
+    });
+    if (links.length > QUICK_LIMIT) {
+      const more = el('button', 'quick-more');
+      more.type = 'button';
+      more.textContent = quickExpanded ? '收起' : '+' + (links.length - QUICK_LIMIT) + ' 更多';
+      more.title = quickExpanded ? '收起快速入口' : '还有 ' + (links.length - QUICK_LIMIT) + ' 个入口（点击展开）';
+      more.addEventListener('click', function () {
+        quickExpanded = !quickExpanded;
+        quickSig = null;
+        renderQuickbar();
+      });
+      box.appendChild(more);
+    }
+  }
+
+  function buildQuickLink(link) {
+    const anchor = el('a', 'quick-link');
+    anchor.href = link.url;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    anchor.title = (link.name || link.id || '未命名') + ' · ' + link.url + (link.lan ? '\n局域网地址：' + link.lan : '');
+    anchor.appendChild(el('span', 'qname', link.name || '(未命名)'));
+    anchor.appendChild(el('span', 'qport', link.host));
+    if (link.lan) anchor.appendChild(el('span', 'qlan', 'LAN'));
+    anchor.appendChild(el('span', 'qgo', '↗'));
+    return anchor;
+  }
+
+  function slugify(name) {
+    const base = String(name || '')
+      .toLowerCase()
+      .replace(/[\s_]+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return base || 'item';
+  }
+
+  function groupOf(item) {
+    return typeof item.group === 'string' ? item.group : '';
+  }
+
+  /* ------------------------- 网络请求 ------------------------- */
+  async function api(path, options) {
+    const opts = options || {};
+    const init = { method: opts.method || 'GET', headers: {} };
+    if (opts.body !== undefined) {
+      init.headers['Content-Type'] = 'application/json';
+      init.body = JSON.stringify(opts.body);
+    }
+    const response = await fetch(path, init);
+    const text = await response.text();
+    let data = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        data = null;
+      }
+    }
+    if (!response.ok) {
+      const error = new Error((data && (data.error || data.message)) || '请求失败（HTTP ' + response.status + '）');
+      error.status = response.status;
+      throw error;
+    }
+    return data === null ? { ok: true, text: text } : data;
+  }
+
+  function toast(message, type) {
+    const box = $('toasts');
+    const node = el('div', 'toast ' + (type || 'info'), message);
+    box.appendChild(node);
+    requestAnimationFrame(function () {
+      node.classList.add('show');
+    });
+    setTimeout(function () {
+      node.classList.remove('show');
+      setTimeout(function () {
+        if (node.parentNode) node.parentNode.removeChild(node);
+      }, 220);
+    }, 3000);
+  }
+
+  function setDisabled(button, disabled) {
+    if (button) button.disabled = Boolean(disabled);
+  }
+
+  function setBusy(button, busy, label) {
+    if (!button) return;
+    if (busy) {
+      if (button.dataset.idleLabel === undefined) button.dataset.idleLabel = button.textContent;
+      button.disabled = true;
+      clear(button);
+      button.appendChild(el('span', 'spin'));
+      button.appendChild(document.createTextNode(label || '处理中…'));
+    } else {
+      if (button.dataset.idleLabel !== undefined) {
+        button.textContent = button.dataset.idleLabel;
+        delete button.dataset.idleLabel;
+      }
+      button.disabled = false;
+    }
+  }
+
+  /* ------------------------- 状态同步 ------------------------- */
+  function isPaused() {
+    return state.modal !== null || state.pending.size > 0 || state.busyAll;
+  }
+
+  async function refresh(options) {
+    const opts = options || {};
+    if (refreshing) return;
+    if (!opts.force && isPaused()) return;
+    refreshing = true;
+    try {
+      const data = await api('/api/state');
+      state.daemon = (data && data.daemon) || null;
+      state.items = Array.isArray(data && data.items) ? data.items : [];
+      state.error = false;
+      state.loaded = true;
+      state.lastSync = Date.now();
+      render();
+    } catch (err) {
+      state.error = true;
+      renderDaemon();
+      renderGrid();
+    } finally {
+      refreshing = false;
+    }
+  }
+
+  /* ------------------------- 渲染：顶栏 / 分组 ------------------------- */
+  function runningCount() {
+    return state.items.filter(function (item) {
+      return item.status === 'running';
+    }).length;
+  }
+
+  function render() {
+    document.title = state.items.length
+      ? '本地控制台 · ' + runningCount() + '/' + state.items.length + ' 运行'
+      : '本地控制台';
+    renderDaemon();
+    renderChips();
+    renderQuickbar();
+    renderGrid();
+  }
+
+  function renderDaemon() {
+    const pill = $('daemon');
+    const label = $('daemonText');
+    const banner = $('banner');
+    if (state.error) {
+      pill.className = 'daemon off';
+      pill.title = '无法连接守护进程';
+      label.textContent = '未连接';
+    } else if (state.daemon) {
+      pill.className = 'daemon live';
+      const version = state.daemon.version ? ' · v' + state.daemon.version : '';
+      label.textContent = '守护进程 PID ' + state.daemon.pid + version;
+      pill.title = [
+        state.daemon.registryPath ? '注册表：' + state.daemon.registryPath : '',
+        state.daemon.startedAt ? '启动于：' + fmtTime(state.daemon.startedAt) : ''
+      ].filter(Boolean).join('\n');
+    } else {
+      pill.className = 'daemon';
+      pill.title = '正在连接守护进程';
+      label.textContent = '连接中…';
+    }
+    const lanPill = $('lanip');
+    const lanText = $('lanipText');
+    const ips = (state.daemon && Array.isArray(state.daemon.lanIps)) ? state.daemon.lanIps : [];
+    if (!state.error && ips.length) {
+      lanPill.hidden = false;
+      lanText.textContent = '本机IP ' + ips[0] + (ips.length > 1 ? ' +' + (ips.length - 1) : '');
+      lanPill.title = '本机局域网地址（点击复制控制台 LAN 地址）：\n' + ips.join('\n');
+      lanPill.onclick = function () { copyAddress('http://' + ips[0] + ':3999/'); };
+    } else {
+      lanPill.hidden = true;
+      lanPill.onclick = null;
+    }
+    banner.hidden = !state.error;
+    if (state.error) {
+      $('bannerDetail').textContent = state.lastSync
+        ? '上次同步 ' + new Date(state.lastSync).toLocaleTimeString('zh-CN', { hour12: false }) + '，正在自动重试…'
+        : '正在自动重试…';
+    }
+  }
+
+  function renderChips() {
+    const counts = new Map();
+    state.items.forEach(function (item) {
+      const group = groupOf(item);
+      counts.set(group, (counts.get(group) || 0) + 1);
+    });
+    const groups = Array.from(counts.entries()).sort(function (a, b) {
+      return a[0].localeCompare(b[0], 'zh-CN');
+    });
+    const sig = JSON.stringify([groups, state.group, state.items.length]);
+    if (sig === chipsSig) return;
+    chipsSig = sig;
+    const nav = $('chips');
+    clear(nav);
+    nav.appendChild(buildChip(GROUP_ALL, '全部', state.items.length));
+    groups.forEach(function (entry) {
+      nav.appendChild(buildChip(entry[0], entry[0] === '' ? '未分组' : entry[0], entry[1]));
+    });
+  }
+
+  function buildChip(value, label, count) {
+    const button = el('button', 'chip' + (state.group === value ? ' on' : ''));
+    button.type = 'button';
+    button.appendChild(document.createTextNode(label));
+    button.appendChild(el('span', 'count', count));
+    button.addEventListener('click', function () {
+      if (state.group === value) return;
+      state.group = value;
+      renderChips();
+      renderGrid();
+    });
+    return button;
+  }
+
+  /* ------------------------- 渲染：卡片网格 ------------------------- */
+  function visibleItems() {
+    const query = state.query.trim().toLowerCase();
+    return state.items.filter(function (item) {
+      if (state.group !== GROUP_ALL && groupOf(item) !== state.group) return false;
+      if (!query) return true;
+      const args = Array.isArray(item.args) ? item.args.join(' ') : '';
+      const haystack = [item.name, item.group, item.exe, args]
+        .map(function (part) {
+          return part === undefined || part === null ? '' : String(part);
+        })
+        .join('\n')
+        .toLowerCase();
+      return haystack.indexOf(query) !== -1;
+    });
+  }
+
+  function renderGrid() {
+    const items = visibleItems();
+    const sig = JSON.stringify([
+      items.map(function (item) {
+        return [item.id, item.name, item.kind, item.status, item.health, item.pid, item.port, item.url, item.note, item.exitCode, item.startedAt, item.lastRun || null, item.currentVersion || null, !!item.hasVersion, !!item.canUpgrade];
+      }),
+      Array.from(state.pending.entries()),
+      Array.from(state.verPending),
+      state.busyAll,
+      state.items.length,
+      state.loaded,
+      state.error && !state.lastSync,
+      Math.floor(Date.now() / 60000)
+    ]);
+    if (sig === gridSig) return;
+    gridSig = sig;
+    const grid = $('grid');
+    clear(grid);
+    if (items.length === 0) {
+      grid.appendChild(buildEmptyState());
+      return;
+    }
+    items.forEach(function (item) {
+      grid.appendChild(buildCard(item));
+    });
+  }
+
+  function buildEmptyState() {
+    const box = el('div', 'empty');
+    let icon = '🗂';
+    let title = '还没有服务';
+    let hint = '点击「＋ 添加」手动登记，或「⟳ 重新扫描」自动发现';
+    if (state.items.length > 0) {
+      icon = '🔍';
+      title = '没有匹配的条目';
+      hint = '调整搜索关键词，或切换到其他分组';
+    } else if (state.error && !state.lastSync) {
+      icon = '🔌';
+      title = '无法加载服务列表';
+      hint = '守护进程未连接，正在自动重试…';
+    } else if (!state.loaded) {
+      icon = '⏳';
+      title = '正在连接守护进程…';
+      hint = '首次加载服务列表';
+    }
+    box.appendChild(el('span', 'em', icon));
+    box.appendChild(el('div', '', title));
+    box.appendChild(el('div', 'hint', hint));
+    return box;
+  }
+
+  /* ------------------------- 渲染：单张卡片 ------------------------- */
+  function baseButton(label, extraClass, disabled) {
+    const button = el('button', 'btn' + (extraClass ? ' ' + extraClass : ''), label);
+    button.type = 'button';
+    button.disabled = Boolean(disabled);
+    return button;
+  }
+
+  function spinnerButton(label) {
+    const button = el('button', 'btn busy');
+    button.type = 'button';
+    button.disabled = true;
+    button.appendChild(el('span', 'spin'));
+    button.appendChild(document.createTextNode(label));
+    return button;
+  }
+
+  function actionButton(label, extraClass, disabled, handler) {
+    const button = baseButton(label, extraClass, disabled);
+    button.addEventListener('click', handler);
+    return button;
+  }
+
+  function cardStatus(item) {
+    if (item.kind === 'terminal') return { label: '终端', cls: 'stopped' };
+    const run = item.lastRun || null;
+    const isScript = item.kind === 'script';
+    if (isScript && item.status === 'stopped' && run && run.ok === true) {
+      return { label: '已运行', cls: 'done' };
+    }
+    if (isScript && item.status === 'error' && run && run.ok === false) {
+      return { label: '失败', cls: 'error' };
+    }
+    return STATUS[item.status] || { label: item.status || '未知', cls: 'stopped' };
+  }
+
+  function buildUrlRow(item, url) {
+    const row = el('div', 'urlrow');
+    if (!url) {
+      row.appendChild(el('span', 'none', '未提供访问地址'));
+      return row;
+    }
+    const anchor = el('a', 'urlchip');
+    anchor.href = url;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    anchor.title = '在新标签页打开：' + url;
+    anchor.setAttribute('aria-label', '打开访问地址：' + (item && item.name ? item.name + ' ' : '') + url);
+    anchor.appendChild(el('span', 'uico', '⧉'));
+    anchor.appendChild(el('span', 'uhost', urlHost(url)));
+    anchor.appendChild(el('span', 'ugo', '↗'));
+    row.appendChild(anchor);
+    const copyBtn = actionButton('复制', 'sm ghost urlcopy', false, function () {
+      copyAddress(url);
+    });
+    copyBtn.title = '复制完整地址：' + url;
+    row.appendChild(copyBtn);
+    const lan = safeUrl(item.urlLan);
+    if (lan && lan !== url) {
+      const lanAnchor = el('a', 'urlchip lanchip');
+      lanAnchor.href = lan;
+      lanAnchor.target = '_blank';
+      lanAnchor.rel = 'noopener noreferrer';
+      lanAnchor.title = '用本机局域网地址打开：' + lan;
+      lanAnchor.setAttribute('aria-label', '用局域网地址打开：' + lan);
+      lanAnchor.appendChild(el('span', 'uico', '🌐'));
+      lanAnchor.appendChild(el('span', 'uhost', urlHost(lan)));
+      lanAnchor.appendChild(el('span', 'ugo', '↗'));
+      row.appendChild(lanAnchor);
+      const lanCopy = actionButton('复制LAN', 'sm ghost urlcopy lan', false, function () { copyAddress(lan); });
+      lanCopy.title = '复制局域网地址：' + lan;
+      row.appendChild(lanCopy);
+    }
+    return row;
+  }
+
+  /** 单条刷新：强制重探该条目的状态 / 端口 / 版本 */
+  async function checkItem(item, btn) {
+    if (!item) return;
+    const label = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '刷新中…'; }
+    try {
+      await api('/api/items/' + encodeURIComponent(item.id) + '/check', { method: 'POST' });
+      await refresh({ force: true });
+      toast('已刷新：' + (item.name || item.id), 'ok');
+    } catch (err) {
+      toast('刷新失败：' + (err && err.message ? err.message : err), 'err');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = label || '刷新'; }
+    }
+  }
+  function buildCard(item) {
+    const status = cardStatus(item);
+    const pending = state.pending.get(item.id);
+    const locked = Boolean(pending) || state.busyAll;
+    const url = safeUrl(item.url);
+    const isScript = item.kind === 'script';
+    const isTerminal = item.kind === 'terminal';
+    const lastRun = item.lastRun || null;
+    const card = el('article', 'card');
+    card.dataset.status = status.cls;
+
+    const head = el('div', 'card-top');
+    const light = el('span', 'light');
+    light.dataset.status = status.cls;
+    light.title = '状态：' + status.label;
+    head.appendChild(light);
+    const name = el('h2', 'card-name', item.name || '(未命名)');
+    const command = [item.exe].concat(Array.isArray(item.args) ? item.args : []).filter(Boolean).join(' ');
+    name.title = command || item.name || '';
+    head.appendChild(name);
+    const pill = el('span', 'pill', status.label);
+    pill.dataset.status = status.cls;
+    head.appendChild(pill);
+    card.appendChild(head);
+
+    const meta = el('div', 'meta');
+    const kind = KIND[item.kind] || { icon: '•', label: item.kind || '未知', short: '未知' };
+    const kindTag = el('span', 'tag kind', kind.icon + ' ' + kind.short);
+    kindTag.title = '类型：' + kind.label;
+    meta.appendChild(kindTag);
+    const currentVersion = typeof item.currentVersion === 'string' ? item.currentVersion.trim() : '';
+    if (currentVersion) {
+      const verBadge = el('span', 'ver', versionLabel(currentVersion));
+      verBadge.title = '当前版本：' + versionLabel(currentVersion);
+      meta.appendChild(verBadge);
+    } else if (item.hasVersion) {
+      const probing = state.verPending.has(item.id);
+      const verBtn = el('button', 'verlink', probing ? '查询中…' : '查版本');
+      verBtn.type = 'button';
+      verBtn.disabled = probing || locked;
+      verBtn.title = probing ? '正在读取版本号' : '读取该条目的版本号（约 1~2 秒）';
+      verBtn.addEventListener('click', function () {
+        probeVersion(item);
+      });
+      meta.appendChild(verBtn);
+    }
+    const group = groupOf(item);
+    const groupTag = el('span', 'tag group', group || '未分组');
+    groupTag.title = '分组：' + (group || '未分组');
+    meta.appendChild(groupTag);
+    if (item.pid !== null && item.pid !== undefined) meta.appendChild(el('span', 'num', 'PID ' + item.pid));
+    if (item.port !== null && item.port !== undefined) meta.appendChild(el('span', 'num', '端口 ' + item.port));
+    if (isTerminal && item.cwd) {
+      const dir = el('span', 'num', '目录 ' + item.cwd);
+      dir.title = '终端工作目录：' + item.cwd;
+      meta.appendChild(dir);
+    }
+    if (item.status === 'running' || item.status === 'starting') {
+      const healthClass = item.health === 'ok' ? ' ok' : item.health === 'down' ? ' down' : '';
+      const health = el('span', 'health' + healthClass);
+      health.appendChild(el('span', 'hd'));
+      health.appendChild(document.createTextNode(HEALTH[item.health] || '未知'));
+      health.title = '健康检查：' + (HEALTH[item.health] || '未知');
+      meta.appendChild(health);
+    }
+    if (item.status === 'running' && item.startedAt) {
+      meta.appendChild(el('span', '', '已运行 ' + fmtDuration(item.startedAt)));
+    } else if (!isScript && item.status === 'error' && item.exitCode !== null && item.exitCode !== undefined) {
+      meta.appendChild(el('span', '', '退出码 ' + item.exitCode));
+    }
+    card.appendChild(meta);
+
+    if (isScript) {
+      card.appendChild(buildLastRun(lastRun));
+      if (url) card.appendChild(buildUrlRow(item, url));
+    } else {
+      card.appendChild(buildUrlRow(item, url));
+    }
+
+    if (item.note) {
+      const note = el('div', 'note', item.note);
+      note.title = item.note;
+      card.appendChild(note);
+    }
+
+    const foot = el('div', 'foot');
+    const primary = el('div', 'cluster');
+    if (pending === 'start') {
+      primary.appendChild(spinnerButton(isScript ? '运行中…' : '启动中…'));
+    } else if (pending === 'stop') {
+      primary.appendChild(spinnerButton(isScript ? '终止中…' : '停止中…'));
+    } else if (pending === 'restart') {
+      primary.appendChild(spinnerButton('重启中…'));
+    } else if (isTerminal) {
+      primary.appendChild(actionButton('打开终端', 'go', locked, function () {
+        runAction(item, 'start', '打开终端');
+      }));
+    } else if (isScript) {
+      if (item.status === 'running' || item.status === 'starting') {
+        primary.appendChild(actionButton('终止', 'stop', locked, function () {
+          runAction(item, 'stop', '终止');
+        }));
+      } else {
+        primary.appendChild(actionButton('运行', 'go', locked, function () {
+          runAction(item, 'start', '运行');
+        }));
+      }
+    } else if (item.status === 'running' || item.status === 'starting') {
+      primary.appendChild(actionButton('停止', 'stop', locked, function () {
+        runAction(item, 'stop', '停止');
+      }));
+    } else {
+      primary.appendChild(actionButton('启动', 'go', locked, function () {
+        runAction(item, 'start', '启动');
+      }));
+    }
+    if (!isScript && !isTerminal && !pending && item.status === 'running') {
+      primary.appendChild(actionButton('重启', '', locked, function () {
+        runAction(item, 'restart', '重启');
+      }));
+    }
+    primary.appendChild(actionButton('日志', 'ghost', false, function () {
+      openLogs(item);
+    }));
+    if (item.canUpgrade) {
+      if (pending === 'upgrade') {
+        primary.appendChild(spinnerButton('升级中…'));
+      } else {
+        primary.appendChild(actionButton('升级', 'upgrade', locked, function () {
+          upgradeItem(item);
+        }));
+      }
+    }
+    if (isScript || item.canUpgrade) {
+      primary.appendChild(actionButton('历史', 'ghost', false, function () {
+        openRuns(item);
+      }));
+    }
+    foot.appendChild(primary);
+
+    const secondary = el('div', 'cluster end');
+    const refreshBtn = actionButton('刷新', 'ghost', locked, function () { checkItem(item, refreshBtn); });
+    refreshBtn.title = '立即重新检测该条目的状态 / 端口 / 版本';
+    secondary.appendChild(refreshBtn);
+    secondary.appendChild(actionButton('打开地址', 'ghost', !url || locked, function () {
+      if (url) window.open(url, '_blank', 'noopener');
+    }));
+    if (pending === 'delete') {
+      secondary.appendChild(spinnerButton('删除中…'));
+    } else {
+      secondary.appendChild(actionButton('删除', 'danger', locked, function () {
+        deleteItem(item);
+      }));
+    }
+    foot.appendChild(secondary);
+    card.appendChild(foot);
+
+    return card;
+  }
+
+  /* ------------------------- 操作：启动 / 停止 / 重启 / 删除 ------------------------- */
+  function applyItem(item) {
+    if (!item || item.id === undefined || item.id === null) return;
+    const index = state.items.findIndex(function (entry) {
+      return entry.id === item.id;
+    });
+    if (index >= 0) state.items[index] = Object.assign({}, state.items[index], item);
+    else state.items.push(item);
+  }
+
+  async function runAction(item, action, label) {
+    if (state.pending.has(item.id)) return;
+    state.pending.set(item.id, action);
+    renderGrid();
+    try {
+      const data = await api('/api/items/' + encodeURIComponent(item.id) + '/' + action, { method: 'POST' });
+      if (data && data.ok === false) throw new Error(data.error || '操作失败');
+      if (data && data.item) applyItem(data.item);
+      toast(label + '成功：' + (item.name || item.id), 'ok');
+    } catch (error) {
+      toast(label + '失败：' + (error.message || '网络错误'), 'err');
+    } finally {
+      state.pending.delete(item.id);
+      renderGrid();
+      refresh({ force: true });
+    }
+  }
+
+  async function deleteItem(item) {
+    const name = item.name || item.id;
+    if (!window.confirm('确定删除「' + name + '」吗？\n将从注册表中移除该条目。')) return;
+    state.pending.set(item.id, 'delete');
+    renderGrid();
+    try {
+      const data = await api('/api/items/' + encodeURIComponent(item.id), { method: 'DELETE' });
+      if (data && data.ok === false) throw new Error(data.error || '删除失败');
+      state.items = state.items.filter(function (entry) {
+        return entry.id !== item.id;
+      });
+      toast('已删除：' + name, 'ok');
+    } catch (error) {
+      toast('删除失败：' + (error.message || '网络错误'), 'err');
+    } finally {
+      state.pending.delete(item.id);
+      renderGrid();
+      refresh({ force: true });
+    }
+  }
+
+  /* ------------------------- 操作：全部停止 / 退出控制台 / 查版本 / 升级 ------------------------- */
+  async function stopAll() {
+    if (state.busyAll) return;
+    const running = state.items.filter(function (item) {
+      return item.kind !== 'script' && (item.status === 'running' || item.status === 'starting');
+    });
+    if (running.length === 0) {
+      toast('没有正在运行的服务', 'info');
+      return;
+    }
+    const names = running.map(function (item) {
+      return item.name || item.id;
+    }).join('、');
+    if (!window.confirm('确定停止全部 ' + running.length + ' 个正在运行的服务吗？\n\n' + names + '\n\n已启动的服务会被终止。')) return;
+    state.busyAll = true;
+    setBusy($('btnStopAll'), true, '停止中');
+    setDisabled($('btnStartAll'), true);
+    setDisabled($('btnShutdown'), true);
+    renderGrid();
+    try {
+      const data = await api('/api/stop-all', { method: 'POST' });
+      if (data && data.ok === false) throw new Error(data.error || '停止失败');
+      const stopped = Array.isArray(data && data.stopped) ? data.stopped : [];
+      const errors = Array.isArray(data && data.errors) ? data.errors : [];
+      if (errors.length > 0) {
+        const first = errors[0] && errors[0].error ? '：' + errors[0].error : '';
+        toast('已停止 ' + stopped.length + ' 个，' + errors.length + ' 个失败' + first, 'err');
+      } else {
+        toast('已停止 ' + stopped.length + ' 个', stopped.length > 0 ? 'ok' : 'info');
+      }
+    } catch (error) {
+      toast('全部停止失败：' + (error.message || '网络错误'), 'err');
+    } finally {
+      state.busyAll = false;
+      setBusy($('btnStopAll'), false);
+      setDisabled($('btnStartAll'), false);
+      setDisabled($('btnShutdown'), false);
+      renderGrid();
+      refresh({ force: true });
+    }
+  }
+
+  async function shutdownConsole() {
+    if (state.busyAll) return;
+    const message = '只关闭控制台本身，已启动的服务会继续运行。\n\n退出后本页面会显示「未连接」，需要重新启动守护进程才能继续管理。\n\n确定退出控制台吗？';
+    if (!window.confirm(message)) return;
+    state.busyAll = true;
+    setBusy($('btnShutdown'), true, '退出中');
+    setDisabled($('btnStartAll'), true);
+    setDisabled($('btnStopAll'), true);
+    renderGrid();
+    try {
+      const data = await api('/api/shutdown', { method: 'POST' });
+      if (data && data.ok === false) throw new Error(data.error || '退出失败');
+      state.error = true;
+      renderDaemon();
+      toast('控制台已退出，已启动的服务仍在运行', 'info');
+    } catch (error) {
+      toast('退出失败：' + (error.message || '网络错误'), 'err');
+    } finally {
+      state.busyAll = false;
+      setBusy($('btnShutdown'), false);
+      setDisabled($('btnStartAll'), false);
+      setDisabled($('btnStopAll'), false);
+      renderGrid();
+    }
+  }
+
+  async function upgradeItem(item) {
+    if (state.pending.has(item.id)) return;
+    const name = item.name || item.id;
+    const message = '将执行该条目的升级命令，可能需要几十秒，输出会记入历史。升级期间该服务通常会停止。\n\n确定升级「' + name + '」吗？';
+    if (!window.confirm(message)) return;
+    state.pending.set(item.id, 'upgrade');
+    renderGrid();
+    try {
+      const data = await api('/api/items/' + encodeURIComponent(item.id) + '/upgrade', { method: 'POST' });
+      if (data && data.ok === false) throw new Error(data.error || '升级失败');
+      const runId = data && typeof data.runId === 'string' ? data.runId : '';
+      toast('已开始升级：' + (runId || name), 'ok');
+      await new Promise(function (resolve) {
+        setTimeout(resolve, 1500);
+      });
+    } catch (error) {
+      toast('升级失败：' + (error.message || '网络错误'), 'err');
+    } finally {
+      state.pending.delete(item.id);
+      renderGrid();
+      refresh({ force: true });
+    }
+  }
+
+  async function probeVersion(item) {
+    if (state.verPending.has(item.id)) return;
+    state.verPending.add(item.id);
+    renderGrid();
+    try {
+      const data = await api('/api/items/' + encodeURIComponent(item.id) + '/version');
+      if (data && data.ok === false) throw new Error(data.error || '版本查询失败');
+      const version = data && typeof data.version === 'string' ? data.version.trim() : '';
+      if (version) {
+        applyItem({ id: item.id, currentVersion: version });
+        toast((item.name || item.id) + ' 版本：' + versionLabel(version), 'ok');
+      } else {
+        toast('没能识别 ' + (item.name || item.id) + ' 的版本号', 'info');
+      }
+    } catch (error) {
+      toast('版本查询失败：' + (error.message || '网络错误'), 'err');
+    } finally {
+      state.verPending.delete(item.id);
+      renderGrid();
+      refresh({ force: true });
+    }
+  }
+
+  async function startAll() {
+    if (state.busyAll) return;
+    const targets = state.items.filter(function (item) {
+      if (item.kind === 'script' || item.kind === 'terminal') return false;
+      return item.status !== 'running' && item.status !== 'starting';
+    });
+    if (targets.length === 0) {
+      toast('没有需要启动的服务', 'info');
+      return;
+    }
+    state.busyAll = true;
+    setBusy($('btnStartAll'), true, '启动中');
+    setDisabled($('btnStopAll'), true);
+    setDisabled($('btnShutdown'), true);
+    renderGrid();
+    let okCount = 0;
+    let failCount = 0;
+    let lastError = '';
+    for (const item of targets) {
+      state.pending.set(item.id, 'start');
+      renderGrid();
+      try {
+        const data = await api('/api/items/' + encodeURIComponent(item.id) + '/start', { method: 'POST' });
+        if (data && data.ok === false) throw new Error(data.error || '启动失败');
+        if (data && data.item) applyItem(data.item);
+        okCount += 1;
+      } catch (error) {
+        failCount += 1;
+        lastError = error.message || '';
+      } finally {
+        state.pending.delete(item.id);
+      }
+    }
+    state.busyAll = false;
+    setBusy($('btnStartAll'), false);
+    setDisabled($('btnStopAll'), false);
+    setDisabled($('btnShutdown'), false);
+    renderGrid();
+    if (failCount > 0) {
+      toast('已启动 ' + okCount + ' 个，' + failCount + ' 个失败' + (lastError ? '：' + lastError : ''), 'err');
+    } else {
+      toast('已启动 ' + okCount + ' 个服务', 'ok');
+    }
+    refresh({ force: true });
+  }
+
+  /* ------------------------- 日志面板 ------------------------- */
+  function openLogs(item) {
+    state.logItem = item;
+    $('logTitle').textContent = '日志 · ' + (item.name || item.id);
+    const parts = [];
+    if (item.pid !== null && item.pid !== undefined) parts.push('PID ' + item.pid);
+    const status = STATUS[item.status];
+    parts.push(status ? status.label : '未知状态');
+    $('logSub').textContent = parts.join(' · ');
+    const body = $('logBody');
+    body.textContent = '正在加载日志…';
+    body.classList.remove('log-empty');
+    $('logMeta').textContent = '—';
+    openPanel('logs');
+    loadLogs();
+  }
+
+  async function loadLogs() {
+    const item = state.logItem;
+    if (!item) return;
+    setBusy($('btnLogRefresh'), true, '加载中');
+    try {
+      const data = await api('/api/items/' + encodeURIComponent(item.id) + '/logs?lines=' + LOG_LINES);
+      if (data && data.ok === false) throw new Error(data.error || '日志读取失败');
+      const text = data && typeof data.text === 'string' ? data.text : '';
+      const body = $('logBody');
+      if (!text.trim()) {
+        body.textContent = '（暂无日志输出）';
+        body.classList.add('log-empty');
+        $('logMeta').textContent = '0 行';
+      } else {
+        body.classList.remove('log-empty');
+        body.textContent = text;
+        const lines = text.split('\n').length;
+        $('logMeta').textContent = lines + ' 行 · ' + (text.length / 1024).toFixed(1) + ' KB · ' +
+          new Date().toLocaleTimeString('zh-CN', { hour12: false });
+      }
+      requestAnimationFrame(function () {
+        body.scrollTop = body.scrollHeight;
+      });
+    } catch (error) {
+      const body = $('logBody');
+      body.classList.remove('log-empty');
+      body.textContent = '日志读取失败：' + (error.message || '网络错误');
+      $('logMeta').textContent = '加载失败';
+      toast('日志读取失败：' + (error.message || '网络错误'), 'err');
+    } finally {
+      setBusy($('btnLogRefresh'), false);
+    }
+  }
+
+  /* ------------------------- 运行历史面板 ------------------------- */
+  function openRuns(item) {
+    state.runsItem = item;
+    state.runs = null;
+    state.runsError = '';
+    state.runActive = null;
+    showRunView('list');
+    $('runsTitle').textContent = '运行历史 · ' + (item.name || item.id);
+    $('runsSub').textContent = item.kind === 'script' ? '一次性任务 · 每次运行的输出单独保存' : '升级与任务记录 · 每次执行的输出单独保存';
+    $('runsMeta').textContent = '—';
+    $('runLog').textContent = '';
+    $('runLog').classList.remove('log-empty');
+    openPanel('runs');
+    loadRuns();
+  }
+
+  function showRunView(view) {
+    state.runView = view === 'log' ? 'log' : 'list';
+    const isLog = state.runView === 'log';
+    $('runList').hidden = isLog;
+    $('runLog').hidden = !isLog;
+    $('btnRunsBack').hidden = !isLog;
+  }
+
+  async function loadRuns() {
+    const item = state.runsItem;
+    if (!item) return;
+    state.runsLoading = true;
+    state.runsError = '';
+    setBusy($('btnRunsRefresh'), true, '加载中');
+    renderRuns();
+    try {
+      const data = await api('/api/items/' + encodeURIComponent(item.id) + '/runs');
+      if (data && data.ok === false) throw new Error(data.error || '读取运行历史失败');
+      state.runs = Array.isArray(data && data.runs) ? data.runs : [];
+    } catch (error) {
+      state.runsError = error.message || '读取运行历史失败';
+      toast('读取运行历史失败：' + state.runsError, 'err');
+    } finally {
+      state.runsLoading = false;
+      setBusy($('btnRunsRefresh'), false);
+      renderRuns();
+    }
+  }
+
+  function renderRuns() {
+    if (!state.runsItem || state.runView === 'log') return;
+    const list = $('runList');
+    const sub = $('runsSub');
+    clear(list);
+    if (state.runsLoading && state.runs === null) {
+      sub.textContent = '正在读取运行记录…';
+      $('runsMeta').textContent = '—';
+      list.appendChild(buildEmptyBox('⏳', '正在读取运行记录…', '加载中'));
+      return;
+    }
+    if (state.runsError && state.runs === null) {
+      sub.textContent = '读取失败：' + state.runsError;
+      $('runsMeta').textContent = '加载失败';
+      list.appendChild(buildEmptyBox('⚠️', '读取运行历史失败', state.runsError));
+      return;
+    }
+    const runs = state.runs || [];
+    const scriptItem = state.runsItem && state.runsItem.kind === 'script';
+    sub.textContent = runs.length
+      ? '共 ' + runs.length + ' 次运行 · 点击「查看输出」读取单次日志'
+      : (scriptItem ? '一次性任务 · 每次运行的输出单独保存' : '升级与任务记录 · 每次执行的输出单独保存');
+    $('runsMeta').textContent = runs.length ? '共 ' + runs.length + ' 条记录' : '0 条记录';
+    if (runs.length === 0) {
+      list.appendChild(buildEmptyBox('🕘', '还没有运行记录', scriptItem ? '点击卡片上的「运行」开始第一次执行' : '点击卡片上的「升级」开始第一次执行'));
+      return;
+    }
+    runs.forEach(function (run) {
+      list.appendChild(buildRunRow(run));
+    });
+  }
+
+  function buildRunRow(run) {
+    const row = el('div', 'runrow');
+    const time = el('span', 'run-time', fmtClock(run.startedAt));
+    time.title = fmtTime(run.startedAt);
+    row.appendChild(time);
+    if (run.kind === 'upgrade') {
+      const kindBadge = el('span', 'run-badge up', '升级');
+      kindBadge.title = '这是一次升级执行';
+      row.appendChild(kindBadge);
+    }
+    const ok = run.ok === true;
+    const code = run.exitCode === null || run.exitCode === undefined ? '—' : run.exitCode;
+    const badge = el('span', 'run-badge ' + (ok ? 'ok' : 'fail'), ok ? '成功' : '失败 exit ' + code);
+    badge.title = ok ? '退出码 0' : '退出码 ' + code + (run.signal ? ' · 信号 ' + run.signal : '');
+    row.appendChild(badge);
+    row.appendChild(el('span', 'run-dur', '耗时 ' + runDuration(run)));
+    row.appendChild(el('span', 'grow'));
+    row.appendChild(actionButton('查看输出', 'sm ghost', false, function () {
+      openRunLog(run);
+    }));
+    return row;
+  }
+
+  function runResultText(run) {
+    if (!run) return '—';
+    if (run.ok === true) return '成功';
+    const code = run.exitCode === null || run.exitCode === undefined ? '—' : run.exitCode;
+    return '失败(exit ' + code + ')';
+  }
+
+  async function openRunLog(run) {
+    const item = state.runsItem;
+    if (!item || !run) return;
+    state.runActive = run;
+    showRunView('log');
+    const body = $('runLog');
+    body.classList.remove('log-empty');
+    body.textContent = '正在读取输出…';
+    $('runsSub').textContent = (run.kind === 'upgrade' ? '升级 · ' : '') + fmtTime(run.startedAt) + ' · ' + runResultText(run) + ' · 耗时 ' + runDuration(run);
+    $('runsMeta').textContent = '—';
+    setBusy($('btnRunsRefresh'), true, '读取中');
+    try {
+      const data = await api('/api/items/' + encodeURIComponent(item.id) + '/runs/' + encodeURIComponent(run.runId) + '/log');
+      if (data && data.ok === false) throw new Error(data.error || '读取输出失败');
+      if (state.runActive !== run) return;
+      const text = data && typeof data.text === 'string' ? data.text : '';
+      if (!text.trim()) {
+        body.textContent = '（这次运行没有输出）';
+        body.classList.add('log-empty');
+        $('runsMeta').textContent = '0 行';
+      } else {
+        body.classList.remove('log-empty');
+        body.textContent = text;
+        $('runsMeta').textContent = text.split('\n').length + ' 行 · ' +
+          (text.length / 1024).toFixed(1) + ' KB · ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+      }
+      requestAnimationFrame(function () {
+        body.scrollTop = body.scrollHeight;
+      });
+    } catch (error) {
+      if (state.runActive !== run) return;
+      body.classList.remove('log-empty');
+      body.textContent = '读取输出失败：' + (error.message || '网络错误');
+      $('runsMeta').textContent = '加载失败';
+      toast('读取输出失败：' + (error.message || '网络错误'), 'err');
+    } finally {
+      setBusy($('btnRunsRefresh'), false);
+    }
+  }
+
+  function backToRunList() {
+    state.runActive = null;
+    showRunView('list');
+    $('runLog').textContent = '';
+    $('runLog').classList.remove('log-empty');
+    renderRuns();
+  }
+
+  function refreshRuns() {
+    if (state.runView === 'log' && state.runActive) openRunLog(state.runActive);
+    else loadRuns();
+  }
+
+  /* ------------------------- 扫描候选 ------------------------- */
+  function candidateKey(candidate) {
+    return [
+      candidate.name,
+      candidate.exe,
+      Array.isArray(candidate.args) ? candidate.args.join(' ') : '',
+      candidate.cwd
+    ].join('|');
+  }
+
+  function openDiscover() {
+    openPanel('discover');
+    scan();
+  }
+
+  async function scan() {
+    state.discLoading = true;
+    state.discError = '';
+    state.disc = null;
+    state.added = new Set();
+    renderDiscover();
+    try {
+      const data = await api('/api/discover', { method: 'POST' });
+      if (data && data.ok === false) throw new Error(data.error || '扫描失败');
+      state.disc = Array.isArray(data && data.candidates) ? data.candidates : [];
+    } catch (error) {
+      state.discError = error.message || '扫描失败';
+      toast('扫描失败：' + state.discError, 'err');
+    } finally {
+      state.discLoading = false;
+      renderDiscover();
+    }
+  }
+
+  function buildEmptyBox(icon, title, hint) {
+    const box = el('div', 'empty');
+    box.appendChild(el('span', 'em', icon));
+    box.appendChild(el('div', '', title));
+    if (hint) box.appendChild(el('div', 'hint', hint));
+    return box;
+  }
+
+  function renderDiscover() {
+    const body = $('discBody');
+    clear(body);
+    const sub = $('discSub');
+    if (state.discLoading) sub.textContent = '正在扫描本机进程与监听端口…';
+    else if (state.discError) sub.textContent = '扫描失败：' + state.discError;
+    else if (state.disc) sub.textContent = '共 ' + state.disc.length + ' 个候选 · 点击「添加」写入注册表';
+    else sub.textContent = '检测本机正在运行的服务';
+    if (state.discLoading) {
+      body.appendChild(buildEmptyBox('📡', '正在扫描…', '识别监听端口与常见服务'));
+      return;
+    }
+    if (state.discError) {
+      body.appendChild(buildEmptyBox('⚠️', '扫描失败', state.discError));
+      return;
+    }
+    if (!state.disc || state.disc.length === 0) {
+      body.appendChild(buildEmptyBox('🗂', '没有发现新东西', '可以再扫描一次，或使用「＋ 添加」手动登记'));
+      return;
+    }
+    state.disc.forEach(function (candidate) {
+      body.appendChild(buildCandidateRow(candidate));
+    });
+  }
+
+  function buildCandidateRow(candidate) {
+    const row = el('div', 'cand');
+    const main = el('div', 'cand-main');
+    main.appendChild(el('div', 'cand-name', candidate.name || '(未命名)'));
+    const command = [candidate.exe].concat(Array.isArray(candidate.args) ? candidate.args : []).filter(Boolean).join(' ');
+    const commandNode = el('div', 'cand-cmd', command || '—');
+    commandNode.title = command;
+    main.appendChild(commandNode);
+    row.appendChild(main);
+
+    const side = el('div', 'cand-side');
+    if (candidate.port !== null && candidate.port !== undefined) {
+      side.appendChild(el('span', 'cand-meta', ':' + candidate.port));
+    }
+    if (candidate.source) {
+      const source = el('span', 'cand-src', candidate.source);
+      source.title = '来源：' + candidate.source;
+      side.appendChild(source);
+    }
+    const key = candidateKey(candidate);
+    const added = state.added.has(key);
+    const button = el('button', 'btn sm go', added ? '✓ 已添加' : '添加');
+    button.type = 'button';
+    button.disabled = added;
+    button.addEventListener('click', function () {
+      addCandidate(candidate, key, button);
+    });
+    side.appendChild(button);
+    row.appendChild(side);
+    return row;
+  }
+
+  async function addCandidate(candidate, key, button) {
+    setBusy(button, true, '添加中');
+    const payload = {
+      name: candidate.name || '未命名服务',
+      exe: candidate.exe || '',
+      args: Array.isArray(candidate.args) ? candidate.args : [],
+      cwd: candidate.cwd || null,
+      port: candidate.port === undefined ? null : candidate.port,
+      kind: 'service',
+      group: '发现'
+    };
+    try {
+      const data = await api('/api/items', { method: 'POST', body: payload });
+      if (data && data.ok === false) throw new Error(data.error || '添加失败');
+      if (data && data.item) applyItem(data.item);
+      state.added.add(key);
+      toast('已添加：' + payload.name, 'ok');
+      refresh({ force: true });
+    } catch (error) {
+      toast('添加失败：' + (error.message || '网络错误'), 'err');
+      setBusy(button, false);
+    }
+    renderDiscover();
+  }
+
+  /* ------------------------- 添加表单 ------------------------- */
+  function openAdd() {
+    $('addErr').textContent = '';
+    $('addForm').reset();
+    const datalist = $('groupList');
+    clear(datalist);
+    const seen = new Set();
+    state.items.forEach(function (item) {
+      const group = groupOf(item);
+      if (!group || seen.has(group)) return;
+      seen.add(group);
+      const option = el('option');
+      option.value = group;
+      datalist.appendChild(option);
+    });
+    openPanel('add');
+    setTimeout(function () {
+      $('fName').focus();
+    }, 40);
+  }
+
+  async function submitAdd() {
+    const name = $('fName').value.trim();
+    const exe = $('fExe').value.trim();
+    const errBox = $('addErr');
+    errBox.textContent = '';
+    if (!name) {
+      errBox.textContent = '请填写名称';
+      $('fName').focus();
+      return;
+    }
+    if (!exe) {
+      errBox.textContent = '请填写可执行文件';
+      $('fExe').focus();
+      return;
+    }
+    const argsText = $('fArgs').value.trim();
+    const cwd = $('fCwd').value.trim();
+    const item = {
+      id: slugify(name) + '-' + Date.now(),
+      name: name,
+      kind: $('fKind').value,
+      group: $('fGroup').value.trim(),
+      exe: exe,
+      args: argsText ? argsText.split(/\s+/) : [],
+      cwd: cwd || null,
+      note: $('fNote').value.trim() || null,
+      status: 'stopped',
+      health: 'unknown',
+      pid: null,
+      url: null,
+      port: null,
+      startedAt: null,
+      exitCode: null
+    };
+    const button = $('btnAddSubmit');
+    setBusy(button, true, '保存中');
+    try {
+      const data = await api('/api/items', { method: 'POST', body: item });
+      if (data && data.ok === false) throw new Error(data.error || '添加失败');
+      if (data && data.item) applyItem(data.item);
+      toast('已添加：' + name, 'ok');
+      closePanels();
+    } catch (error) {
+      errBox.textContent = error.message || '添加失败';
+      toast('添加失败：' + (error.message || '网络错误'), 'err');
+    } finally {
+      setBusy(button, false);
+    }
+  }
+
+  /* ------------------------- 面板控制 ------------------------- */
+  function openPanel(kind) {
+    state.modal = kind;
+    $('backdrop').hidden = false;
+    $('panelLogs').hidden = kind !== 'logs';
+    $('panelRuns').hidden = kind !== 'runs';
+    $('panelDiscover').hidden = kind !== 'discover';
+    $('panelAdd').hidden = kind !== 'add';
+  }
+
+  function closePanels() {
+    const wasOpen = state.modal !== null;
+    state.modal = null;
+    state.logItem = null;
+    state.runsItem = null;
+    state.runs = null;
+    state.runsLoading = false;
+    state.runsError = '';
+    state.runActive = null;
+    state.runView = 'list';
+    $('backdrop').hidden = true;
+    $('panelLogs').hidden = true;
+    $('panelRuns').hidden = true;
+    $('panelDiscover').hidden = true;
+    $('panelAdd').hidden = true;
+    $('runList').hidden = false;
+    $('runLog').hidden = true;
+    $('btnRunsBack').hidden = true;
+    if (wasOpen) refresh({ force: true });
+  }
+
+  /* ------------------------- 事件绑定与启动 ------------------------- */
+  function bindEvents() {
+    $('search').addEventListener('input', function (event) {
+      state.query = event.target.value;
+      renderGrid();
+    });
+    $('btnStartAll').addEventListener('click', startAll);
+    $('btnStopAll').addEventListener('click', stopAll);
+    $('btnShutdown').addEventListener('click', shutdownConsole);
+    $('btnDiscover').addEventListener('click', openDiscover);
+    $('btnAdd').addEventListener('click', openAdd);
+    $('btnReScan').addEventListener('click', scan);
+    $('btnLogRefresh').addEventListener('click', loadLogs);
+    $('btnRunsRefresh').addEventListener('click', refreshRuns);
+    $('btnRunsBack').addEventListener('click', backToRunList);
+    $('btnAddSubmit').addEventListener('click', submitAdd);
+    $('addForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      submitAdd();
+    });
+    $('btnLogClose').addEventListener('click', closePanels);
+    $('btnRunsClose').addEventListener('click', closePanels);
+    $('btnDiscClose').addEventListener('click', closePanels);
+    $('btnDiscClose2').addEventListener('click', closePanels);
+    $('btnAddClose').addEventListener('click', closePanels);
+    $('btnAddCancel').addEventListener('click', closePanels);
+    $('backdrop').addEventListener('click', closePanels);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && state.modal !== null) closePanels();
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) refresh({ force: true });
+    });
+  }
+
+  function start() {
+    bindEvents();
+    render();
+    refresh({ force: true });
+    setInterval(function () {
+      refresh();
+    }, REFRESH_MS);
+  }
+
+  start();
+})();
+</script>
+
+</body>
+</html>
