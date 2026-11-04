@@ -78,11 +78,22 @@ dsh plugin --profile desktop add github:liuhuan007/dsh-service-hub
 
 守护进程只启停**你自己登记**的命令，不会擅自执行任何东西。执行 `npm test` 可跑这些保证的回归测试。
 
+## 目录结构
+
+控制台就是插件本身，不再有"另一个要安装/同步的项目"：
+
+```
+lib/            Host 插件（自动拉起控制台）+ 侧栏客户端
+console/        控制台守护进程与单页 UI，随包发布
+scripts/        开发辅助（start-console.cmd 可手动起控制台调试）
+locale/、icon.svg、cordis.patch.yml
+```
+
+数据与日志都在 `~/.dsh-service-hub/`，所以侧栏面板、自动拉起、手动启动三者读同一份登记表。
 ## 开发
 
 ```bash
 npm test              # 安全 + API 回归测试（node:test）
-npm run sync          # 把控制台实现同步进 console/
 npm pack --dry-run    # 检查发布文件清单
 ```
 ## 许可证

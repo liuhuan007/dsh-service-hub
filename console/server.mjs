@@ -9,8 +9,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = process.env.LC_DATA_DIR || path.join(ROOT, 'data');
-const LOG_DIR = process.env.LC_LOG_DIR || path.join(ROOT, 'logs');
+const HOME_DIR = path.join(os.homedir(), '.dsh-service-hub');
+// 默认与 dsh-service-hub 插件共用同一份用户级数据目录，避免双实例各自空面板
+const DATA_DIR = process.env.LC_DATA_DIR || path.join(HOME_DIR, 'data');
+const LOG_DIR = process.env.LC_LOG_DIR || path.join(HOME_DIR, 'logs');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const REGISTRY_PATH = path.join(DATA_DIR, 'registry.json');
 const RUNTIME_PATH = path.join(DATA_DIR, 'runtime.json');

@@ -96,11 +96,23 @@ The bundled console listens on `127.0.0.1` only and is guarded against drive-by 
 The daemon can start and stop the commands **you registered**; it never runs anything on
 its own. Run `npm test` to see the regression suite for these guarantees.
 
+## Layout
+
+The console is this plugin. There is no separate project to install or keep in sync:
+
+```
+lib/            Host plugin (auto-starts the console) and the sidebar client bundle
+console/        The console daemon + single-page UI, shipped as part of the package
+scripts/        Developer helpers (start-console.cmd for manual debugging)
+locale/, icon.svg, cordis.patch.yml
+```
+
+Data and logs live in `~/.dsh-service-hub/`, so the console, the sidebar panel and a
+manually started instance all read the same registry.
 ## Development
 
 ```bash
 npm test              # security + API regression tests (node:test)
-npm run sync          # copy the console implementation into console/
 npm pack --dry-run    # inspect the published file list
 ```
 ## License
