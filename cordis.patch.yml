@@ -1,0 +1,4 @@
+# dsh-service-hub bundle patch：把插件插入 loader
+- insert:
+    - id: service-hub
+      name: 'dsh-service-hub'
