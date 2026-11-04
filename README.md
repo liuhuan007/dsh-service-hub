@@ -71,6 +71,14 @@ instead of starting a second one.
   `meta.description` in English and Chinese for the plugin inventory.
 - Console URL is fixed to `127.0.0.1:3999`.
 
+### Discovery tries to classify each candidate
+
+`Scan` lists unregistered executables and listening ports. Every candidate carries a
+suggested kind before you add it — `app` for install-directory programs and shortcuts,
+`service` for programs that listen on a port, `terminal` for command wrappers in npm or
+user bin directories, `script` for other batch files — and the discovery dialog shows a
+kind selector, so the guess is always overridable. System directories (`C:\Windows\...`)
+are skipped.
 ## Security
 
 The bundled console listens on `127.0.0.1` only and is guarded against drive-by use:

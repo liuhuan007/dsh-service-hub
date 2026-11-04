@@ -731,16 +731,54 @@ function portCandidates() {
   return out;
 }
 
+/** 从可执行文件路径/监听端口推断该条目更可能是哪种类型（供 UI 预选，可改） */
+const GUI_DIR_MARKERS = ['\\program files\\', '\\program files (x86)\\', '\\appdata\\local\\programs\\', '\\windowsapps\\', '\\programs\\'];
+const CLI_DIR_MARKERS = ['\\npm\\', '\\node_modules\\.bin\\', '\\node_modules\\', '\\.local\\bin\\', '\\uv\\tools\\', '\\scripts\\', '\\bin\\'];
+const SCRIPT_EXT = ['.cmd', '.bat', '.ps1', '.vbs', '.sh'];
+function classifyCandidate(c) {
+  const exe = String((c && c.exe) || '');
+  const lower = exe.toLowerCase();
+  const name = String((c && c.name) || '').toLowerCase();
+  const ext = (lower.match(/\.[a-z0-9]+$/) || [''])[0];
+  // 1) 安装目录下的 exe → 先按 GUI 应用处理（很多桌面应用也会监听端口）
+  if (GUI_DIR_MARKERS.some((m) => lower.indexOf(m) >= 0)) return { kind: 'app', confidence: 'high', reason: '安装目录' };
+  // 2) 正在监听端口，且不是安装目录里的程序 → 常驻服务
+  if (c && c.port) return { kind: 'service', confidence: 'high', reason: '监听端口 ' + c.port };
+  // 2) 快捷方式 → GUI 启动器
+  if (ext === '.lnk') return { kind: 'app', confidence: 'high', reason: '快捷方式' };
+  // 3) .cmd/.bat：位于 npm / 包管理器目录的是 CLI 命令，其余按脚本任务
+  if (SCRIPT_EXT.indexOf(ext) >= 0) {
+    if (CLI_DIR_MARKERS.some((m) => lower.indexOf(m) >= 0)) return { kind: 'terminal', confidence: 'medium', reason: '包管理器的命令包装 ' + ext };
+    return { kind: 'script', confidence: 'medium', reason: '批处理/脚本 ' + ext };
+  }
+  // 5) CLI 工具目录 / 无绝对路径（PATH 上的命令）→ 终端
+  if (!lower || lower.indexOf('\\') < 0 || CLI_DIR_MARKERS.some((m) => lower.indexOf(m) >= 0)) {
+    return { kind: 'terminal', confidence: 'medium', reason: '命令行工具' };
+  }
+  // 6) 其它独立 exe：可能是后台服务，也可能是小工具，交给用户确认
+  return { kind: 'service', confidence: 'low', reason: '独立可执行文件' };
+}
+const KIND_GROUP = { service: '服务', app: '应用', script: '脚本', terminal: '终端工具' };
+
 function discover() {
+  const SYSTEM_EXE = /\\windows\\|\\programdata\\microsoft\\windows defender\\/i;
   const a = scanExeCandidates();
   const b = portCandidates();
   const seenExe = new Set();
   const merged = [];
   for (const c of b.concat(a)) {
+    if (SYSTEM_EXE.test(String(c.exe || ''))) continue;
     const k = c.exe.toLowerCase();
     if (seenExe.has(k)) continue;
     seenExe.add(k);
     merged.push(c);
+    const cls = classifyCandidate(c);
+    merged[merged.length - 1] = Object.assign({}, c, {
+      suggestedKind: cls.kind,
+      suggestedGroup: KIND_GROUP[cls.kind],
+      kindConfidence: cls.confidence,
+      kindReason: cls.reason,
+    });
     if (merged.length >= 60) break;
   }
   return merged;

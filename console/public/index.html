@@ -229,6 +229,10 @@ button{font-family:inherit;}
 .cand-side{display:flex;align-items:center;gap:8px;flex:none;}
 .cand-meta{font-family:var(--mono);font-size:11px;color:var(--dim);}
 .cand-src{padding:1px 6px;font-size:10.5px;color:var(--dim);border:1px solid var(--border);border-radius:5px;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis;}
+.cand-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.cand-kind{flex:none;font-size:10.5px;font-weight:600;color:#9cc4ff;background:rgba(76,154,255,.12);border:1px solid rgba(76,154,255,.4);border-radius:4px;padding:1px 6px;}
+.cand-kind.low{color:#e5c07b;background:rgba(229,192,123,.12);border-color:rgba(229,192,123,.45);}
+.cand-kind-select{background:#161b22;color:inherit;border:1px solid var(--dsw-alias-border-l1,#2a2f3a);border-radius:6px;font-size:11px;padding:2px 4px;cursor:pointer;}
 
 /* ======================== 表单 ======================== */
 .form{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;}
@@ -1694,7 +1698,18 @@ button{font-family:inherit;}
   function buildCandidateRow(candidate) {
     const row = el('div', 'cand');
     const main = el('div', 'cand-main');
-    main.appendChild(el('div', 'cand-name', candidate.name || '(未命名)'));
+    const head = el('div', 'cand-head');
+    head.appendChild(el('div', 'cand-name', candidate.name || '(未命名)'));
+    const sugKind = candidate.suggestedKind || 'service';
+    const sugInfo = KIND[sugKind] || KIND.service;
+    const badge = el('span', 'cand-kind' + (candidate.kindConfidence === 'low' ? ' low' : ''),
+      sugInfo.icon + ' ' + sugInfo.short);
+    badge.title = '推断：' + sugInfo.label
+      + (candidate.kindConfidence === 'low' ? '（不确定，建议确认）' : '')
+      + (candidate.kindReason ? ' · ' + candidate.kindReason : '')
+      + ' · 可在右侧下拉修改';
+    head.appendChild(badge);
+    main.appendChild(head);
     const command = [candidate.exe].concat(Array.isArray(candidate.args) ? candidate.args : []).filter(Boolean).join(' ');
     const commandNode = el('div', 'cand-cmd', command || '—');
     commandNode.title = command;
@@ -1710,20 +1725,31 @@ button{font-family:inherit;}
       source.title = '来源：' + candidate.source;
       side.appendChild(source);
     }
+    const kindSelect = el('select', 'cand-kind-select');
+    kindSelect.title = '添加时使用的类型';
+    ['service', 'app', 'script', 'terminal'].forEach(function (k) {
+      const opt = el('option', null, KIND[k].icon + ' ' + KIND[k].short);
+      opt.value = k;
+      if (k === sugKind) opt.selected = true;
+      kindSelect.appendChild(opt);
+    });
+    side.appendChild(kindSelect);
     const key = candidateKey(candidate);
     const added = state.added.has(key);
     const button = el('button', 'btn sm go', added ? '✓ 已添加' : '添加');
     button.type = 'button';
     button.disabled = added;
     button.addEventListener('click', function () {
-      addCandidate(candidate, key, button);
+      addCandidate(candidate, key, button, kindSelect);
     });
     side.appendChild(button);
     row.appendChild(side);
     return row;
   }
 
-  async function addCandidate(candidate, key, button) {
+  async function addCandidate(candidate, key, button, selectEl) {
+    const kind = (selectEl && selectEl.value) || candidate.suggestedKind || 'service';
+    const kindInfo = KIND[kind] || KIND.service;
     setBusy(button, true, '添加中');
     const payload = {
       name: candidate.name || '未命名服务',
@@ -1731,15 +1757,15 @@ button{font-family:inherit;}
       args: Array.isArray(candidate.args) ? candidate.args : [],
       cwd: candidate.cwd || null,
       port: candidate.port === undefined ? null : candidate.port,
-      kind: 'service',
-      group: '发现'
+      kind: kind,
+      group: kindInfo.short
     };
     try {
       const data = await api('/api/items', { method: 'POST', body: payload });
       if (data && data.ok === false) throw new Error(data.error || '添加失败');
       if (data && data.item) applyItem(data.item);
       state.added.add(key);
-      toast('已添加：' + payload.name + (data && data.item && data.item.id ? '（id: ' + data.item.id + '）' : ''), 'ok');
+      toast('已添加（' + kindInfo.label + '）：' + payload.name + (data && data.item && data.item.id ? ' · id: ' + data.item.id : ''), 'ok');
       refresh({ force: true });
     } catch (error) {
       toast('添加失败：' + (error.message || '网络错误'), 'err');
