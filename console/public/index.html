@@ -1739,7 +1739,7 @@ button{font-family:inherit;}
       if (data && data.ok === false) throw new Error(data.error || '添加失败');
       if (data && data.item) applyItem(data.item);
       state.added.add(key);
-      toast('已添加：' + payload.name, 'ok');
+      toast('已添加：' + payload.name + (data && data.item && data.item.id ? '（id: ' + data.item.id + '）' : ''), 'ok');
       refresh({ force: true });
     } catch (error) {
       toast('添加失败：' + (error.message || '网络错误'), 'err');

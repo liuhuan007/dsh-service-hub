@@ -1,70 +1,68 @@
 {
-    "name":  "dsh-service-hub",
-    "version":  "0.4.1",
-    "type":  "module",
-    "description":  "Service Hub for DeepSeek Harness - manage local services, scripts and terminal tools from a built-in sidebar panel. Ships its own zero-dependency console daemon; no third-party plugin required. 服务面板：DSH 侧栏一键启停本机服务（自带控制台，无第三方依赖）。",
-    "main":  "lib/index.js",
-    "exports":  {
-                    ".":  "./lib/index.js",
-                    "./client":  "./lib/client.js",
-                    "./locale/*.json":  "./locale/*.json",
-                    "./icon":  "./icon.svg",
-                    "./package.json":  "./package.json"
-                },
-    "files":  [
-                  "lib/index.js",
-                  "lib/client.js",
-                  "cordis.patch.yml",
-                  "console/server.mjs",
-                  "console/public/index.html",
-                  "console/data/registry.json",
-                  "locale/*.json",
-                  "icon.svg",
-                  "README.md",
-                  "README.zh.md",
-                  "LICENSE"
-              ],
-    "keywords":  [
-                     "dsh-plugin",
-                     "deepseek-harness",
-                     "deepseek",
-                     "dsh",
-                     "plugin",
-                     "service-manager",
-                     "process-manager",
-                     "local-services",
-                     "sidebar-panel",
-                     "console"
-                 ],
-    "license":  "MIT",
-    "author":  "liuhuan007",
-    "repository":  {
-                       "type":  "git",
-                       "url":  "git+https://github.com/liuhuan007/dsh-service-hub.git"
-                   },
-    "homepage":  "https://github.com/liuhuan007/dsh-service-hub#readme",
-    "bugs":  {
-                 "url":  "https://github.com/liuhuan007/dsh-service-hub/issues"
-             },
-    "engines":  {
-                    "dsh":  "\u003e=0.2.1",
-                    "node":  "\u003e=18"
-                },
-    "dsh":  {
-                "bundle":  {
-                               "patch":  "./cordis.patch.yml"
-                           },
-                "client":  {
-                               "platform":  "web",
-                               "immediately":  true,
-                               "inject":  [
-
-                                          ]
-                           },
-                "manifestVersion":  1
-            },
-    "scripts":  {
-                    "test":  "node --test test/",
-                    "sync":  "node scripts/sync-console.mjs"
-                }
+  "name": "dsh-service-hub",
+  "version": "0.4.2",
+  "type": "module",
+  "description": "Service Hub for DeepSeek Harness - manage local services, scripts and terminal tools from a built-in sidebar panel. Ships its own zero-dependency console daemon; no third-party plugin required. 服务面板：DSH 侧栏一键启停本机服务（自带控制台，无第三方依赖）。",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "console/server.mjs",
+    "console/public/index.html",
+    "console/data/registry.json",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "deepseek",
+    "dsh",
+    "plugin",
+    "service-manager",
+    "process-manager",
+    "local-services",
+    "sidebar-panel",
+    "console"
+  ],
+  "license": "MIT",
+  "author": "liuhuan007",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liuhuan007/dsh-service-hub.git"
+  },
+  "homepage": "https://github.com/liuhuan007/dsh-service-hub#readme",
+  "bugs": {
+    "url": "https://github.com/liuhuan007/dsh-service-hub/issues"
+  },
+  "engines": {
+    "dsh": ">=0.2.1",
+    "node": ">=18"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    },
+    "manifestVersion": 1
+  },
+  "scripts": {
+    "test": "node --test test/",
+    "sync": "node scripts/sync-console.mjs"
+  }
 }

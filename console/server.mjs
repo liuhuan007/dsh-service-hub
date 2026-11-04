@@ -108,9 +108,36 @@ function logPathFor(item) {
   return safeLogPath(item.id + '.log');
 }
 
+/** 未提供 id 时，从名称派生一个合法且唯一的 id（扫描发现的条目走这条路） */
+function deriveId(raw) {
+  // 同名（且同 exe）视为同一条目：重复添加应更新而不是新建
+  const nameKey = String(raw.name || '').trim();
+  const exeKey = String(raw.exe || '').trim();
+  if (nameKey) {
+    const same = registry.items.find((i) => i.name === nameKey && String(i.exe || '') === exeKey);
+    if (same) return same.id;
+  }
+  const source = String(raw.name || raw.exe || '').trim();
+  let base = source.toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-._]+|[-._]+$/g, '');
+  if (!base) base = 'item-' + Date.now().toString(36);
+  if (base.length > 60) base = base.slice(0, 60);
+  if (!SAFE_ID.test(base)) base = 'item-' + Date.now().toString(36);
+  const taken = new Set(registry.items.map((i) => i.id));
+  let candidate = base;
+  let n = 2;
+  while (taken.has(candidate)) {
+    candidate = base.slice(0, 56) + '-' + n;
+    n += 1;
+  }
+  return candidate;
+}
+
 function normalizeItem(raw) {
   const it = {
-    id: String(raw.id || '').trim(),
+    id: String(raw.id || '').trim() || deriveId(raw),
     name: String(raw.name || raw.id || '未命名').trim(),
     kind: ['app','script','terminal'].indexOf(raw.kind) >= 0 ? raw.kind : 'service',
     group: raw.group ? String(raw.group) : '',
