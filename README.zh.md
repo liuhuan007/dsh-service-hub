@@ -62,6 +62,24 @@ dsh plugin --profile desktop add github:liuhuan007/dsh-service-hub
 - 面板文案目前只有中文；`locale/` 提供中英文 `meta.title` / `meta.description`。
 - 控制台地址固定为 `127.0.0.1:3999`。
 
+## 安全
+
+内置控制台只监听 `127.0.0.1`，并且防住了"网页顺手调用本地 API"这类攻击：
+
+- **不再返回任何 CORS 头**：其它站点发起的浏览器请求在预检阶段就失败，读不到 `/api/state`，也调不了写操作
+- **Origin / Sec-Fetch / Host 三重校验**：脚本发起的跨站请求一律 `403`；顶层与 iframe 导航放行，面板才能内嵌页面
+- **id 白名单**：条目 id 仅允许 `[A-Za-z0-9._-]{1,64}`，所有日志路径都做 `path.resolve` 断言，`/api/items/<id>/logs` 无法穿越读其它文件
+- **`/healthz`** 只暴露 `{ ok, version, pid }` 与 `X-LC-Daemon` 头；Host 侧据此确认连的是本插件的守护进程，而不是恰好占用 3999 的其它服务
+
+守护进程只启停**你自己登记**的命令，不会擅自执行任何东西。执行 `npm test` 可跑这些保证的回归测试。
+
+## 开发
+
+```bash
+npm test              # 安全 + API 回归测试（node:test）
+npm run sync          # 把控制台实现同步进 console/
+npm pack --dry-run    # 检查发布文件清单
+```
 ## 许可证
 
 MIT

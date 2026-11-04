@@ -71,6 +71,30 @@ instead of starting a second one.
   `meta.description` in English and Chinese for the plugin inventory.
 - Console URL is fixed to `127.0.0.1:3999`.
 
+## Security
+
+The bundled console listens on `127.0.0.1` only and is guarded against drive-by use:
+
+- **No CORS headers.** Browser requests from any other origin fail at preflight, so a
+  random website cannot read `/api/state` or call mutating endpoints.
+- **Origin / Sec-Fetch / Host guard.** Script-initiated cross-site requests get `403`;
+  top-level and iframe navigation stays allowed so the panel can embed the page.
+- **Safe ids.** Entry ids are limited to `[A-Za-z0-9._-]{1,64}` and every log path is
+  resolved inside the log directory, so `/api/items/<id>/logs` cannot read other files.
+- **`/healthz`** exposes only `{ ok, version, pid }` plus the `X-LC-Daemon` header, which
+  the Host uses to confirm it is talking to this plugin's daemon and not an unrelated
+  process that happens to occupy port 3999.
+
+The daemon can start and stop the commands **you registered**; it never runs anything on
+its own. Run `npm test` to see the regression suite for these guarantees.
+
+## Development
+
+```bash
+npm test              # security + API regression tests (node:test)
+npm run sync          # copy the console implementation into console/
+npm pack --dry-run    # inspect the published file list
+```
 ## License
 
 MIT

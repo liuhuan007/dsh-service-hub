@@ -24,6 +24,16 @@ const PS = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
 for (const d of [DATA_DIR, LOG_DIR]) fs.mkdirSync(d, { recursive: true });
 
 // ---------- 注册表 ----------
+const SAFE_ID = /^[A-Za-z0-9._-]{1,64}$/;
+/** 只允许 LOG_DIR 内部的日志路径，杜绝 id 造成的路径穿越 */
+function safeLogPath(name) {
+  const resolved = path.resolve(LOG_DIR, name);
+  const base = path.resolve(LOG_DIR) + path.sep;
+  if (!resolved.startsWith(base)) throw new Error('非法日志路径');
+  return resolved;
+}
+
+let registryLoadedOk = true;
 function loadRegistry() {
   if (!fs.existsSync(REGISTRY_PATH)) return { version: 1, items: [] };
   try {
@@ -36,11 +46,12 @@ function loadRegistry() {
     return raw;
   } catch (e) {
     try { fs.copyFileSync(REGISTRY_PATH, REGISTRY_PATH + '.bad-' + Date.now()); } catch {}
+      registryLoadedOk = false;
     return { version: 1, items: [] };
   }
 }
 let registry = loadRegistry();
-try { saveRegistry(); } catch (e) {}   // 归一化后立刻落盘，修正缺字段的旧条目
+if (registryLoadedOk) { try { saveRegistry(); } catch (e) {} } else { consoleLog('注册表加载失败：跳过回写，避免覆盖现有文件'); }
 
 function saveRegistry() {
   const tmp = REGISTRY_PATH + '.tmp';
@@ -88,9 +99,13 @@ function recordRun(id, run) {
   saveHistory();
 }
 function logPathFor(item) {
-  if (item.kind !== 'script') return path.join(LOG_DIR, item.id + '.log');
+  if (item.kind !== 'script') return safeLogPath(item.id + '.log');
   const runs = history[item.id] || [];
-  return runs.length && runs[0].logPath ? runs[0].logPath : path.join(LOG_DIR, item.id + '.log');
+  if (runs.length && runs[0].logPath) {
+    const recorded = path.resolve(String(runs[0].logPath));
+    if (recorded.startsWith(path.resolve(LOG_DIR) + path.sep)) return recorded;
+  }
+  return safeLogPath(item.id + '.log');
 }
 
 function normalizeItem(raw) {
@@ -119,6 +134,7 @@ function normalizeItem(raw) {
     stopArgs: Array.isArray(raw.stopArgs) ? raw.stopArgs.map(String) : null,
   };
   if (!it.id) throw new Error('id 不能为空');
+  if (!SAFE_ID.test(it.id)) throw new Error('id 只能包含字母、数字、点、下划线、连字符（最长 64）');
   if (!it.exe) throw new Error('exe 不能为空');
   return it;
 }
@@ -706,7 +722,7 @@ function discover() {
 // ---------- HTTP ----------
 function json(res, code, obj) {
   const body = JSON.stringify(obj);
-  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' });
+  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-LC-Daemon': VERSION, 'X-Content-Type-Options': 'nosniff' });
   res.end(body);
 }
 function readBody(req) {
@@ -719,10 +735,43 @@ function readBody(req) {
 }
 function findItem(id) { return registry.items.find((i) => i.id === id) || null; }
 
+/** 只接受本机回环来源的浏览器请求：跨站页面无法读写本 API。 */
+const ALLOWED_HOSTS = new Set([
+  '127.0.0.1:' + PORT, 'localhost:' + PORT, '[::1]:' + PORT, '::1:' + PORT,
+]);
+const ALLOWED_ORIGINS = new Set([
+  'http://127.0.0.1:' + PORT, 'http://localhost:' + PORT, 'http://[::1]:' + PORT,
+]);
+function rejectReason(req, pathname) {
+  const host = String(req.headers.host || '').toLowerCase();
+  if (host && !ALLOWED_HOSTS.has(host)) return 'host';
+  // 顶层 / iframe 导航必须放行：服务面板由别的端口（如 3082）内嵌本页
+  const mode = String(req.headers['sec-fetch-mode'] || '').toLowerCase();
+  if (mode === 'navigate') return null;
+  // /healthz 不含业务数据，允许跨源探测（面板据此显示连接状态）
+  if (pathname === '/healthz') return null;
+  const site = String(req.headers['sec-fetch-site'] || '').toLowerCase();
+  if (site === 'cross-site' || site === 'same-site') return 'sec-fetch-site';
+  const origin = req.headers.origin;
+  if (origin && !ALLOWED_ORIGINS.has(String(origin).toLowerCase())) return 'origin';
+  return null;
+}
+
 async function handler(req, res) {
   const url = new URL(req.url, 'http://' + HOST + ':' + PORT);
   const p = url.pathname;
-  if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return res.end(); }
+  const bad = rejectReason(req, p);
+  if (bad) {
+    consoleLog('拒绝跨源请求 (' + bad + '): ' + (req.headers.origin || req.headers.host || '-'));
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8', 'X-LC-Daemon': VERSION });
+    return res.end(JSON.stringify({ ok: false, error: 'forbidden' }));
+  }
+  if (p === '/healthz') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-LC-Daemon': VERSION });
+    return res.end(JSON.stringify({ ok: true, version: VERSION, pid: process.pid }));
+  }
+  // 不再回 CORS 头：页面与 API 同源，跨源浏览器请求必须在预检阶段失败
+  if (req.method === 'OPTIONS') { res.writeHead(204, { 'Allow': 'GET,POST,DELETE' }); return res.end(); }
   try {
     if (req.method === 'GET' && (p === '/' || p === '/index.html')) {
       const file = path.join(PUBLIC_DIR, 'index.html');
@@ -842,7 +891,12 @@ async function handler(req, res) {
 
     if (req.method === 'POST' && p === '/api/items') {
       const raw = await readBody(req);
-      const item = normalizeItem(raw);
+      let item;
+      try {
+        item = normalizeItem(raw);
+      } catch (e) {
+        return json(res, 400, { ok: false, error: String((e && e.message) || e) });
+      }
       const exists = findItem(item.id);
       if (exists) { Object.assign(exists, item); } else { registry.items.push(item); }
       saveRegistry();
