@@ -66,7 +66,7 @@ instead of starting a second one.
 
 ## Known limitations
 
-- Requires `dsh-better-sidebar`; without it no sidebar tab is registered.
+- The panel opens from the session header (⚙ 服务). Installing `dsh-better-sidebar` additionally adds the same panel as a left sidebar tab; it is optional.
 - Panel text is currently Chinese only; `locale/` ships `meta.title` /
   `meta.description` in English and Chinese for the plugin inventory.
 - Console URL is fixed to `127.0.0.1:3999`.

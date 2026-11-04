@@ -58,7 +58,7 @@ dsh plugin --profile desktop add github:liuhuan007/dsh-service-hub
 
 ## 已知限制
 
-- 强依赖 `dsh-better-sidebar`，未安装则不会出现侧栏标签。
+- 面板从会话头部（⚙ 服务）打开；若另外安装了 `dsh-better-sidebar`，会额外在左侧栏加一个同样的标签（可选，非必需）。
 - 面板文案目前只有中文；`locale/` 提供中英文 `meta.title` / `meta.description`。
 - 控制台地址固定为 `127.0.0.1:3999`。
 
