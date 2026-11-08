@@ -18,33 +18,50 @@ plugin keeps your service list.
 
 ## What you get
 
-The Harness sidebar gains a **Service** tab listing every registered entry with live
-status, health, port and a quick access URL, plus **start / stop / restart / logs /
-refresh** buttons and a LAN address you can open from a phone. Services you start keep
-running when the panel is closed, because the daemon owns the process control.
+The session header gains a **⚙ 服务** button that opens the **Service** panel, listing
+every registered entry with live status, health, port and a quick access URL, plus
+**start / stop / restart / logs / refresh** buttons and a LAN address you can open from a
+phone. Services you start keep running when the panel is closed, because the daemon owns
+the process control. Installing `dsh-better-sidebar` also puts the same panel in the
+sidebar.
 
 ## Install
+
+`dsh-service-hub` is not published on npm yet, so install it from this repository:
+
+```bash
+dsh plugin --profile desktop add github:liuhuan007/dsh-service-hub
+```
+
+`desktop` is the profile the DeepSeek Harness desktop app boots; use the profile you
+actually run instead (`web` for the web UI, or your own profile name). The desktop
+profile must have been started once, and the app must be fully quit while the command
+runs. When `dsh` is not on `PATH`, call the copy the app ships at
+`<install dir>/resources/runtime/cli/bin/dsh.cmd`.
+
+Then start DeepSeek Harness again and open the panel from **⚙ 服务** in the session
+header.
+
+Once the npm package is published, the short form works as well:
 
 ```bash
 dsh plugin --profile desktop add dsh-service-hub
 ```
 
-Then restart DeepSeek Harness (or reload the window) and open the **Service** tab.
-
-From source before an npm release exists:
-
-```bash
-dsh plugin --profile desktop add github:liuhuan007/dsh-service-hub
-```
+Check the result with `dsh plugin --profile <profile> why dsh-service-hub`. The panel
+talks to the console on `http://127.0.0.1:3999`; the registry and logs live in
+`~/.dsh-service-hub/`.
 
 ## Requirements
 
 | Requirement | Why |
 |---|---|
 | DeepSeek Harness 0.2.1+ with the Web/Desktop UI | Client bundle targets `platform: web` |
-| [`dsh-better-sidebar`](https://www.npmjs.com/package/dsh-better-sidebar) | The panel registers a sidebar tab through its service |
 | Node 18+ | Runs the bundled console daemon (the desktop app ships one) |
 | Windows | Process management uses PowerShell and `tasklist`/`netstat` |
+
+[`dsh-better-sidebar`](https://www.npmjs.com/package/dsh-better-sidebar) is optional: it
+adds the same panel as a sidebar tab, which the session-header button opens anyway.
 
 Port `3999` must be free. If another console already listens there, the plugin reuses it
 instead of starting a second one.
@@ -61,7 +78,8 @@ instead of starting a second one.
 ## Compatibility
 
 - DSH: `>=0.2.1`
-- UI: Web / Desktop (sidebar tab); no effect on the TUI or headless profiles
+- UI: Web / Desktop (session-header panel, optionally a sidebar tab); no effect on the
+  TUI or headless profiles
 - OS: Windows
 
 ## Known limitations

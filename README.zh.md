@@ -13,32 +13,45 @@
 
 ## 装完有什么
 
-侧栏多出 **服务** 标签页，列出所有登记条目及其状态、健康、端口和快速访问地址，
-每个条目都有 **启动 / 停止 / 重启 / 日志 / 刷新**，并给出局域网地址（手机可打开）。
-已启动的服务在关掉面板后继续运行，因为进程控制由守护进程负责。
+会话头部多出 **⚙ 服务** 按钮，点开就是 **服务** 面板：列出所有登记条目及其状态、
+健康、端口和快速访问地址，每个条目都有 **启动 / 停止 / 重启 / 日志 / 刷新**，并给出
+局域网地址（手机可打开）。已启动的服务在关掉面板后继续运行，因为进程控制由守护进程
+负责；另外装了 `dsh-better-sidebar` 时侧栏也会多一个同样的标签。
 
 ## 安装
+
+`dsh-service-hub` 还没发布到 npm，先从这个仓库装：
+
+```bash
+dsh plugin --profile desktop add github:liuhuan007/dsh-service-hub
+```
+
+`desktop` 是桌面版启动的 profile；请换成你实际在用的那个（Web 版是 `web`，自建
+profile 用自己的名字）。桌面 profile 需要先启动过一次桌面应用，并且执行命令时要
+**完全退出**应用。若 `dsh` 不在 PATH 里，用应用自带的
+`<安装目录>/resources/runtime/cli/bin/dsh.cmd`。
+
+然后重新启动 DeepSeek Harness，在会话头部点 **⚙ 服务** 打开面板。
+
+npm 包发布之后，短名也可以直接装：
 
 ```bash
 dsh plugin --profile desktop add dsh-service-hub
 ```
 
-装完重启 DeepSeek Harness（或刷新窗口），在侧栏打开 **服务**。
-
-源码安装（npm 包发布前可用）：
-
-```bash
-dsh plugin --profile desktop add github:liuhuan007/dsh-service-hub
-```
+装完可以用 `dsh plugin --profile <profile> why dsh-service-hub` 核对。面板连的控制台在
+`http://127.0.0.1:3999`，登记表与日志在 `~/.dsh-service-hub/`。
 
 ## 依赖要求
 
 | 要求 | 原因 |
 |---|---|
 | DeepSeek Harness 0.2.1+ 的 Web / 桌面版 | 客户端产物面向 `platform: web` |
-| [`dsh-better-sidebar`](https://www.npmjs.com/package/dsh-better-sidebar) | 侧栏标签通过它的 service 注册 |
 | Node 18+ | 运行内置控制台（桌面版自带） |
 | Windows | 进程管理依赖 PowerShell 与 `tasklist`/`netstat` |
+
+[`dsh-better-sidebar`](https://www.npmjs.com/package/dsh-better-sidebar) 可选：它把同一个
+面板再加一个侧栏标签，不装也能从会话头部打开。
 
 端口 `3999` 需空闲；若已有控制台占用，插件会复用它而不再起第二个。
 
@@ -53,7 +66,7 @@ dsh plugin --profile desktop add github:liuhuan007/dsh-service-hub
 ## 兼容性
 
 - DSH：`>=0.2.1`
-- 界面：Web / 桌面版（侧栏标签）；对 TUI、headless 无影响
+- 界面：Web / 桌面版（会话头部面板，可选侧栏标签）；对 TUI、headless 无影响
 - 系统：Windows
 
 ## 已知限制

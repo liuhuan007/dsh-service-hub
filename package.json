@@ -1,6 +1,6 @@
 {
   "name": "dsh-service-hub",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "type": "module",
   "description": "Service Hub for DeepSeek Harness - manage local services, scripts and terminal tools from a built-in sidebar panel. Ships its own zero-dependency console daemon; no third-party plugin required. 服务面板：DSH 侧栏一键启停本机服务（自带控制台，无第三方依赖）。",
   "main": "lib/index.js",
