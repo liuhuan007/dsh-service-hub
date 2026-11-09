@@ -1,7 +1,7 @@
 # 把 dsh-service-hub 装进 desktop profile（离线、可回滚）
 $ErrorActionPreference = 'Stop'
 $pd    = "$env:USERPROFILE\.dsh\profiles\desktop"
-$src   = 'F:\agent\dsh-service-hub'
+$src   = 'F:\agent\work\service-hub'
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 
 if (-not (Test-Path $pd)) { throw "找不到 profile: $pd" }
@@ -12,7 +12,7 @@ Write-Host "已备份 profile/package.json -> package.json.bak-servicehub-$stamp
 $enc = New-Object System.Text.UTF8Encoding($false)
 $j = [System.IO.File]::ReadAllText("$pd\package.json") | ConvertFrom-Json
 if ($null -eq $j.dependencies.'dsh-service-hub') {
-  $j.dependencies | Add-Member -NotePropertyName 'dsh-service-hub' -NotePropertyValue 'link:F:/agent/dsh-service-hub' -Force
+  $j.dependencies | Add-Member -NotePropertyName 'dsh-service-hub' -NotePropertyValue 'link:F:/agent/work/service-hub' -Force
 }
 if (@($j.dsh.profile.bundles | Where-Object { $_ -eq 'dsh-service-hub' }).Count -eq 0) {
   $j.dsh.profile.bundles = @($j.dsh.profile.bundles) + 'dsh-service-hub'
