@@ -1,6 +1,6 @@
 # dsh-service-hub
 
-[![Listed on DSH Plugin Hub](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org)
+[![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/liuhuan007/dsh-service-hub)
 
 **Service Hub for DeepSeek Harness** — a sidebar panel that starts, stops, restarts and
 monitors the local services, one-shot scripts and terminal tools you keep on your own
